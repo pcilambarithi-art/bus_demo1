@@ -108,7 +108,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
   const quickPrompts = [
     'Bus enga irukku?',
     `When will ${selectedBus.busNumber} reach my stop?`,
-    'Bus college-ku reach aagiducha?',
+    'Show all active buses to track',
     'What is the bus speed right now?',
     'Near which stop is the bus moving?',
   ];
@@ -128,13 +128,13 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
                 <h3 className="font-extrabold text-base dark:text-white text-slate-900 leading-tight">
                   DCE Transit AI Copilot
                 </h3>
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
                   <CheckCircle2 className="w-3 h-3" />
-                  DCE Verified
+                  Bus-Only Transit
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Dhanalakshmi College of Engineering, Chennai • English & Tanglish
+                DCE Campus Bus Tracking & Transit Only • English & Tanglish
               </p>
             </div>
           </div>
