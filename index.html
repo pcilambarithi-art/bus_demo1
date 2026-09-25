@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" class="dark scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>DCE Bus Tracker — Dhanalakshmi College of Engineering, Chennai</title>
+    <meta name="description" content="Official Real-Time GPS College Bus Tracking System for Dhanalakshmi College of Engineering (DCE), Chennai, Tamil Nadu with live telemetry, map navigation, and proximity alerts." />
+    <meta name="theme-color" content="#070B19" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Google Maps API with user key and callback hook -->
+    <script>
+      window.initMap = function() {
+        window.googleMapsReady = true;
+        window.dispatchEvent(new Event('google-maps-ready'));
+      };
+      window.gm_authFailure = function() {
+        window.googleMapsAuthFailed = true;
+        window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
+        console.warn('Google Maps API quota/auth limit reached. Falling back to high-performance Vector map.');
+      };
+      window.addEventListener('error', function(event) {
+        if (event.filename && (event.filename.includes('maps.googleapis.com') || event.filename.includes('maps.gstatic.com'))) {
+          window.googleMapsAuthFailed = true;
+          window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
+        }
+      });
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&libraries=places&callback=initMap" async defer></script>
+  </head>
+  <body class="bg-[#070B19] text-slate-100 selection:bg-cyan-500 selection:text-black overflow-x-hidden antialiased font-sans">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">College Bus Tracker</string>
+    <string name="title_activity_main">College Bus Tracker</string>
+    <string name="package_name">com.college.bustracker</string>
+    <string name="custom_url_scheme">com.college.bustracker</string>
+</resources>
