@@ -35,16 +35,40 @@
         }
       });
     </script>
-    <!-- Inline dark theme styles so screen is never white -->
+    <!-- Instant theme detector before DOM paint (prevents flicker) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('bus_tracker_theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = saved === 'dark' || (!saved && prefersDark) || (saved === 'system' && prefersDark);
+          if (saved === 'light' || (!saved && !prefersDark) || (saved === 'system' && !prefersDark)) {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Theme-aware baseline styles -->
     <style>
       html, body, #root {
         margin: 0;
         padding: 0;
         width: 100%;
         min-height: 100vh;
-        background-color: #070B19 !important;
-        color: #f1f5f9;
         font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        transition: background-color 0.25s ease, color 0.25s ease;
+      }
+      html.dark, html.dark body, html.dark #root {
+        background-color: #070B19;
+        color: #f1f5f9;
+      }
+      html.light, html.light body, html.light #root {
+        background-color: #F8FAFC;
+        color: #0F172A;
       }
       @keyframes pulseSlow {
         0%, 100% { opacity: 1; transform: scale(1); }

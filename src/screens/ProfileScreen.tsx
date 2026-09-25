@@ -325,10 +325,10 @@ export const ProfileScreen: React.FC = () => {
                 <button
                   key={mode}
                   onClick={() => setTheme(mode)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
                     theme === mode
                       ? 'bg-cyan-500 text-black shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   {mode}

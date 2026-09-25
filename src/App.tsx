@@ -22,7 +22,7 @@ const MainAppLayout: React.FC = () => {
   const [splashFinished, setSplashFinished] = useState(false);
 
   return (
-    <div className="min-h-screen relative flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen relative flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-black dark:bg-[#070B19] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors duration-300">
       
       {/* Premium Startup Splash Screen (Requirement 17) */}
       {!splashFinished && (

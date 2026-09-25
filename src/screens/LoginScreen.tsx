@@ -12,6 +12,8 @@ import {
   MapPin,
   CheckCircle,
   Radio,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
@@ -23,6 +25,8 @@ export const LoginScreen: React.FC = () => {
     isSoundMuted,
     toggleSound,
     allRoutes,
+    setTheme,
+    isDark,
   } = useBus();
 
   const [activeTab, setActiveTab] = useState<'google' | 'college'>('google');
@@ -60,51 +64,67 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col justify-between bg-[#070B19] text-white selection:bg-cyan-500 selection:text-black overflow-x-hidden font-sans">
+    <div className="min-h-screen relative flex flex-col justify-between dark:bg-[#070B19] bg-[#F8FAFC] dark:text-white text-slate-900 selection:bg-cyan-500 selection:text-black overflow-x-hidden font-sans transition-colors duration-300">
       
       {/* Ambient Atmospheric Background Glows */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-96 sm:w-[500px] h-96 sm:h-[500px] rounded-full bg-cyan-500/15 blur-[140px] transform-gpu" />
-        <div className="absolute top-1/3 -right-32 w-96 sm:w-[550px] h-96 sm:h-[550px] rounded-full bg-blue-600/15 blur-[150px] transform-gpu" />
-        <div className="absolute -bottom-32 left-1/4 w-80 h-80 rounded-full bg-indigo-600/15 blur-[140px] transform-gpu" />
+        <div className="absolute -top-32 -left-32 w-96 sm:w-[500px] h-96 sm:h-[500px] rounded-full dark:bg-cyan-500/15 bg-cyan-400/20 blur-[140px] transform-gpu" />
+        <div className="absolute top-1/3 -right-32 w-96 sm:w-[550px] h-96 sm:h-[550px] rounded-full dark:bg-blue-600/15 bg-blue-400/15 blur-[150px] transform-gpu" />
+        <div className="absolute -bottom-32 left-1/4 w-80 h-80 rounded-full dark:bg-indigo-600/15 bg-indigo-300/20 blur-[140px] transform-gpu" />
       </div>
 
       {/* Top Header Bar */}
-      <header className="relative z-10 w-full px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between">
+      <header className="relative z-10 w-full px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between border-b dark:border-white/10 border-slate-200/80 dark:bg-transparent bg-white/50 backdrop-blur-md">
         <div className="flex items-center gap-2.5 sm:gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]">
             <span className="text-xl">🚌</span>
           </div>
           <div>
-            <span className="font-extrabold text-base sm:text-lg tracking-tight text-white block leading-tight">
-              DCE<span className="text-cyan-400"> BUS TRACKER</span>
+            <span className="font-extrabold text-base sm:text-lg tracking-tight dark:text-white text-slate-900 block leading-tight">
+              DCE<span className="text-cyan-500 dark:text-cyan-400"> BUS TRACKER</span>
             </span>
-            <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase leading-tight hidden sm:block">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wider uppercase leading-tight hidden sm:block">
               Dhanalakshmi College of Engineering
             </span>
           </div>
         </div>
 
-        {/* Audio Mute/Unmute & Campus Status */}
+        {/* Audio Mute/Unmute, Theme Toggle & Campus Status */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold backdrop-blur-md bg-white/5 border border-white/10 text-emerald-400">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold backdrop-blur-md dark:bg-white/5 bg-emerald-50 dark:border-white/10 border-emerald-200 text-emerald-600 dark:text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>Campus Fleet Live</span>
           </div>
 
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Theme"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all active:scale-95 shadow-sm dark:bg-white/5 bg-white text-slate-700 dark:text-slate-300 dark:border-white/10 border-slate-200 hover:bg-slate-100 dark:hover:bg-white/15 cursor-pointer"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600" />
+            )}
+          </button>
+
+          {/* Audio Sound Toggle */}
           <button
             onClick={toggleSound}
             title={isSoundMuted ? 'Unmute Audio & Voice' : 'Mute Audio & Voice'}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all active:scale-95 shadow-md ${
+            aria-label="Toggle Sound"
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all active:scale-95 shadow-sm cursor-pointer ${
               isSoundMuted
-                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 hover:bg-rose-500/30'
-                : 'bg-cyan-500/20 border-cyan-400/40 text-cyan-400 hover:bg-cyan-500/30'
+                ? 'bg-rose-500/15 border-rose-500/35 text-rose-500 dark:text-rose-400 hover:bg-rose-500/25'
+                : 'bg-cyan-500/15 border-cyan-400/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25'
             }`}
           >
             {isSoundMuted ? (
-              <VolumeX className="w-4 h-4 text-rose-400" />
+              <VolumeX className="w-4 h-4" />
             ) : (
-              <Volume2 className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <Volume2 className="w-4 h-4 animate-pulse" />
             )}
           </button>
         </div>
@@ -112,43 +132,43 @@ export const LoginScreen: React.FC = () => {
 
       {/* Main Authentication Card */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-6 sm:py-10">
-        <div className="w-full max-w-md backdrop-blur-2xl bg-slate-900/80 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden">
+        <div className="w-full max-w-md backdrop-blur-2xl dark:bg-slate-900/80 bg-white/90 dark:border-white/10 border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden transition-colors duration-300">
           
           {/* Top Neon Border Glow */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
 
           {/* Welcome Badge */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-400 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full dark:bg-cyan-500/10 bg-cyan-50 border dark:border-cyan-400/30 border-cyan-200 text-cyan-600 dark:text-cyan-400 text-xs font-semibold mb-3">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Official Student & Faculty Portal</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black dark:text-white text-slate-900 tracking-tight">
               Sign In to Transit
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               Track your college bus live with GPS & voice alerts
             </p>
           </div>
 
           {/* Tab Switcher (Google Connect vs College ID) */}
-          <div className="flex p-1 rounded-2xl bg-[#070B19]/80 border border-white/10 mb-6">
+          <div className="flex p-1 rounded-2xl dark:bg-[#070B19]/80 bg-slate-100 dark:border-white/10 border-slate-200 mb-6">
             <button
               onClick={() => setActiveTab('google')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'google'
                   ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <span>Connect with Google</span>
             </button>
             <button
               onClick={() => setActiveTab('college')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'college'
                   ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <span>College Roll ID</span>
@@ -158,8 +178,8 @@ export const LoginScreen: React.FC = () => {
           {/* 1. GOOGLE CONNECT SECTION */}
           {activeTab === 'google' && (
             <div className="space-y-4 animate-[fadeIn_0.25s_ease-out]">
-              <div className="p-4 rounded-2xl bg-[#0B132B]/80 border border-cyan-500/20 text-center">
-                <p className="text-xs text-slate-300 leading-relaxed">
+              <div className="p-4 rounded-2xl dark:bg-[#0B132B]/80 bg-cyan-50/70 border dark:border-cyan-500/20 border-cyan-200 text-center">
+                <p className="text-xs dark:text-slate-300 text-slate-700 leading-relaxed">
                   Connect your Google account to automatically synchronize your DCE transit pass, notifications, and stops.
                 </p>
               </div>
@@ -168,7 +188,7 @@ export const LoginScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsGoogleModalOpen(true)}
-                className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-sm shadow-[0_4px_25px_rgba(255,255,255,0.2)] transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl dark:bg-white/10 bg-white hover:bg-slate-50 dark:hover:bg-white/15 dark:text-white text-slate-800 font-bold text-sm border dark:border-white/15 border-slate-300 shadow-md transition-all active:scale-[0.98] cursor-pointer"
               >
                 {/* Official Google G Logo */}
                 <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -185,7 +205,7 @@ export const LoginScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleGoogleSubmit('karthik.s.dce@gmail.com', 'Karthik S.')}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4 cursor-pointer"
+                  className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
                 >
                   ⚡ One-Tap Connect (Karthik S. • CSE)
                 </button>
@@ -197,7 +217,7 @@ export const LoginScreen: React.FC = () => {
           {activeTab === 'college' && (
             <form onSubmit={handleCollegeSubmit} className="space-y-3.5 animate-[fadeIn_0.25s_ease-out]">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
                   Student Name
                 </label>
                 <div className="relative">
@@ -208,13 +228,13 @@ export const LoginScreen: React.FC = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Karthik S."
-                    className="w-full bg-[#070B19] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
                   College Roll Number / ID
                 </label>
                 <div className="relative">
@@ -225,13 +245,13 @@ export const LoginScreen: React.FC = () => {
                     value={rollNumber}
                     onChange={(e) => setRollNumber(e.target.value)}
                     placeholder="e.g. DCE-2024-CSE-042"
-                    className="w-full bg-[#070B19] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors font-mono"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
                   Department
                 </label>
                 <div className="relative">
@@ -239,7 +259,7 @@ export const LoginScreen: React.FC = () => {
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full bg-[#070B19] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs dark:text-white text-slate-900 focus:outline-none focus:border-cyan-500 transition-colors"
                   >
                     <option value="Computer Science & Engineering">Computer Science & Engineering</option>
                     <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
@@ -252,7 +272,7 @@ export const LoginScreen: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
                   Assigned Bus Route
                 </label>
                 <div className="relative">
@@ -260,7 +280,7 @@ export const LoginScreen: React.FC = () => {
                   <select
                     value={selectedRouteId}
                     onChange={(e) => setSelectedRouteId(e.target.value)}
-                    className="w-full bg-[#070B19] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs dark:text-white text-slate-900 focus:outline-none focus:border-cyan-500 transition-colors"
                   >
                     {allRoutes.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -284,9 +304,9 @@ export const LoginScreen: React.FC = () => {
           {/* Divider */}
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t dark:border-white/10 border-slate-200" />
             </div>
-            <span className="relative px-3 bg-slate-900 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <span className="relative px-3 dark:bg-slate-900 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Quick Options
             </span>
           </div>
@@ -296,7 +316,7 @@ export const LoginScreen: React.FC = () => {
             <button
               type="button"
               onClick={loginAsGuest}
-              className="w-full py-2.5 px-4 rounded-xl border border-white/15 hover:bg-white/5 text-slate-300 hover:text-white font-medium text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border dark:border-white/15 border-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 dark:text-slate-300 text-slate-700 font-medium text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Instant Guest Pass (Explore Routes)</span>
             </button>
@@ -305,9 +325,9 @@ export const LoginScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => setMode('driver')}
-              className="w-full py-2.5 px-4 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border border-amber-500/30 dark:bg-amber-500/10 bg-amber-50 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <Radio className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-pulse" />
               <span>DCE Bus Driver? Open Cockpit</span>
             </button>
           </div>
@@ -321,25 +341,25 @@ export const LoginScreen: React.FC = () => {
       </main>
 
       {/* Campus Transit Stats Ticker */}
-      <footer className="relative z-10 w-full py-3 px-4 border-t border-white/10 bg-[#070B19]/80 backdrop-blur-md text-center text-xs text-slate-400 flex flex-wrap items-center justify-center gap-3 sm:gap-6 font-mono">
+      <footer className="relative z-10 w-full py-3 px-4 border-t dark:border-white/10 border-slate-200/80 dark:bg-[#070B19]/80 bg-slate-100/90 backdrop-blur-md text-center text-xs dark:text-slate-400 text-slate-600 flex flex-wrap items-center justify-center gap-3 sm:gap-6 font-mono">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse"></span>
           <span>4 Active Express Routes</span>
         </span>
-        <span className="hidden sm:inline text-white/20">•</span>
+        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
         <span>16 GPS Transmitters</span>
-        <span className="hidden sm:inline text-white/20">•</span>
+        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
         <span>2,400+ Daily Student Boardings</span>
-        <span className="hidden sm:inline text-white/20">•</span>
-        <span className="text-cyan-400">DCE Manimangalam Campus</span>
+        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
+        <span className="text-cyan-600 dark:text-cyan-400">DCE Manimangalam Campus</span>
       </footer>
 
       {/* GOOGLE ACCOUNT CHOOSER MODAL */}
       {isGoogleModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
-          <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-white/20 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+          <div className="relative w-full max-w-sm rounded-3xl dark:bg-slate-900 bg-white border dark:border-white/20 border-slate-200 p-6 shadow-2xl">
             {/* Header with Google Logo */}
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b dark:border-white/10 border-slate-200">
               <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -347,8 +367,8 @@ export const LoginScreen: React.FC = () => {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
               <div>
-                <h3 className="font-extrabold text-sm text-white">Sign in with Google</h3>
-                <p className="text-[11px] text-slate-400">Choose an account for DCE Bus Tracker</p>
+                <h3 className="font-extrabold text-sm dark:text-white text-slate-900">Sign in with Google</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Choose an account for DCE Bus Tracker</p>
               </div>
             </div>
 
@@ -357,37 +377,37 @@ export const LoginScreen: React.FC = () => {
               {/* Account 1 */}
               <button
                 onClick={() => handleGoogleSubmit('ilambarithi2006@gmail.com', 'Ilambarithi')}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left cursor-pointer active:scale-98"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl dark:bg-white/5 bg-slate-50 hover:bg-slate-100 dark:hover:bg-white/10 border dark:border-white/10 border-slate-200 transition-all text-left cursor-pointer active:scale-98"
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   I
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-white truncate">Ilambarithi</div>
-                  <div className="text-[11px] text-slate-400 truncate">ilambarithi2006@gmail.com</div>
+                  <div className="text-xs font-bold dark:text-white text-slate-900 truncate">Ilambarithi</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">ilambarithi2006@gmail.com</div>
                 </div>
-                <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                <CheckCircle className="w-4 h-4 text-cyan-500 dark:text-cyan-400 flex-shrink-0" />
               </button>
 
               {/* Account 2 */}
               <button
                 onClick={() => handleGoogleSubmit('karthik.s.dce@gmail.com', 'Karthik S.')}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left cursor-pointer active:scale-98"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl dark:bg-white/5 bg-slate-50 hover:bg-slate-100 dark:hover:bg-white/10 border dark:border-white/10 border-slate-200 transition-all text-left cursor-pointer active:scale-98"
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   K
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-white truncate">Karthik S.</div>
-                  <div className="text-[11px] text-slate-400 truncate">karthik.s.dce@gmail.com</div>
+                  <div className="text-xs font-bold dark:text-white text-slate-900 truncate">Karthik S.</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">karthik.s.dce@gmail.com</div>
                 </div>
-                <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                <CheckCircle className="w-4 h-4 text-cyan-500 dark:text-cyan-400 flex-shrink-0" />
               </button>
             </div>
 
             {/* Custom Google Email input */}
-            <div className="mb-4 pt-2 border-t border-white/10">
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+            <div className="mb-4 pt-2 border-t dark:border-white/10 border-slate-200">
+              <label className="block text-[11px] font-semibold dark:text-slate-300 text-slate-700 mb-1.5">
                 Or enter another Google account:
               </label>
               <input
@@ -395,14 +415,14 @@ export const LoginScreen: React.FC = () => {
                 placeholder="student.name@gmail.com"
                 value={customGoogleEmail}
                 onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                className="w-full bg-[#070B19] border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 mb-2"
+                className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl px-3 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 mb-2"
               />
               <input
                 type="text"
                 placeholder="Full Name"
                 value={customGoogleName}
                 onChange={(e) => setCustomGoogleName(e.target.value)}
-                className="w-full bg-[#070B19] border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl px-3 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -411,7 +431,7 @@ export const LoginScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsGoogleModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/15 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border dark:border-white/15 border-slate-300 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5"
               >
                 Cancel
               </button>

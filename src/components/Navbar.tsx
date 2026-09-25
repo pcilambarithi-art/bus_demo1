@@ -168,11 +168,12 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* Theme Toggle (Desktop) */}
+          {/* Theme Toggle (Mobile & Desktop) */}
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="hidden sm:flex w-9 h-9 rounded-2xl items-center justify-center backdrop-blur-md dark:bg-white/5 bg-slate-100 text-slate-700 dark:text-slate-300 border dark:border-white/10 border-slate-200 hover:bg-white/15 active:scale-95 transition-all"
+            className="flex w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl items-center justify-center backdrop-blur-md dark:bg-white/5 bg-slate-100 text-slate-700 dark:text-slate-300 border dark:border-white/10 border-slate-200 hover:bg-slate-200/60 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer"
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Theme"
           >
             {isDark ? (
               <Sun className="w-4 h-4 text-amber-400" />

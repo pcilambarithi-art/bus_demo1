@@ -138,21 +138,45 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Theme handling
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('bus_tracker_theme');
-    return (saved as ThemeMode) || 'dark';
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bus_tracker_theme');
+      if (saved === 'light' || saved === 'dark' || saved === 'system') {
+        return saved as ThemeMode;
+      }
+    }
+    return 'dark';
   });
+
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const isDark = useMemo(() => {
     if (theme === 'system') {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return systemPrefersDark;
     }
     return theme === 'dark';
-  }, [theme]);
+  }, [theme, systemPrefersDark]);
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     sound.playClick();
     setThemeState(newTheme);
-    localStorage.setItem('bus_tracker_theme', newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bus_tracker_theme', newTheme);
+    }
   }, []);
 
   useEffect(() => {
@@ -163,6 +187,11 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       root.classList.remove('dark');
       root.classList.add('light');
+    }
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDark ? '#070B19' : '#F8FAFC');
     }
   }, [isDark]);
 
