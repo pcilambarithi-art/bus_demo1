@@ -10,10 +10,13 @@ import {
   Smartphone,
   MapPin,
   Radio,
+  LogOut,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const {
+    student,
+    logout,
     setTheme,
     isDark,
     isSoundMuted,
@@ -177,6 +180,46 @@ export const Navbar: React.FC = () => {
               <Moon className="w-4 h-4 text-indigo-600" />
             )}
           </button>
+
+          {/* User Profile Badge & Logout */}
+          {student && (
+            <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l dark:border-white/10 border-slate-200">
+              <div
+                className="flex items-center gap-1.5 max-w-[110px] sm:max-w-[150px] truncate"
+                title={`${student.name} (${student.rollNo || student.email || 'Student'})`}
+              >
+                {student.avatarUrl ? (
+                  <img
+                    src={student.avatarUrl}
+                    alt={student.name}
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-cyan-400/50 object-cover shadow-sm flex-shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
+                    {student.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="hidden md:flex flex-col text-left leading-none">
+                  <span className="text-xs font-semibold dark:text-white text-slate-900 truncate">
+                    {student.name.split(' ')[0]}
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-mono truncate">
+                    {student.authProvider === 'google' ? 'Google' : student.rollNo || 'Student'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={logout}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 transition-all active:scale-95 shadow-sm"
+                title="Sign Out / Change User"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

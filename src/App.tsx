@@ -15,15 +15,11 @@ import { LiveBusScreen } from './screens/LiveBusScreen';
 import { RouteScreen } from './screens/RouteScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { DriverScreen } from './screens/DriverScreen';
+import { LoginScreen } from './screens/LoginScreen';
 
 const MainAppLayout: React.FC = () => {
-  const { activeTab, isAiModalOpen, setIsAiModalOpen, mode } = useBus();
+  const { activeTab, isAiModalOpen, setIsAiModalOpen } = useBus();
   const [splashFinished, setSplashFinished] = useState(false);
-
-  // When mode === 'driver' (e.g. ?mode=driver), render Driver Cockpit
-  if (mode === 'driver') {
-    return <DriverScreen />;
-  }
 
   return (
     <div className="min-h-screen relative flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-black">
@@ -77,10 +73,26 @@ const MainAppLayout: React.FC = () => {
   );
 };
 
+const AppContent: React.FC = () => {
+  const { isAuthenticated, mode } = useBus();
+
+  // When mode === 'driver' (e.g. ?mode=driver), render Driver Cockpit
+  if (mode === 'driver') {
+    return <DriverScreen />;
+  }
+
+  // When not logged in, show Login Screen first!
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
+  return <MainAppLayout />;
+};
+
 export const App: React.FC = () => {
   return (
     <BusProvider>
-      <MainAppLayout />
+      <AppContent />
     </BusProvider>
   );
 };

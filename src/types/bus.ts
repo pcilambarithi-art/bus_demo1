@@ -73,10 +73,14 @@ export interface ProximityAlert {
 export interface StudentUser {
   name: string;
   id: string;
+  rollNo?: string;
   department: string;
   semester: string;
   assignedBusId: string;
   assignedStopId: string;
   lat: number;
   lng: number;
+  email?: string;
+  avatarUrl?: string;
+  authProvider?: 'google' | 'college' | 'guest';
 }

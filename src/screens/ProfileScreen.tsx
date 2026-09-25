@@ -39,6 +39,7 @@ export const ProfileScreen: React.FC = () => {
     setUseRealGeolocation,
     setIsApkModalOpen,
     setIsSosModalOpen,
+    logout,
   } = useBus();
 
   const [showQrModal, setShowQrModal] = useState(false);
@@ -406,8 +407,8 @@ export const ProfileScreen: React.FC = () => {
         {/* OPTION 9: Logout (Requirement 14) */}
         <div className="pt-3.5">
           <button
-            onClick={() => alert('Student session logged out.')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-rose-500 dark:bg-rose-500/10 bg-rose-50 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all"
+            onClick={logout}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-rose-500 dark:bg-rose-500/10 bg-rose-50 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out Session</span>

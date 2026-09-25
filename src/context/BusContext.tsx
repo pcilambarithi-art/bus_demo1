@@ -88,6 +88,14 @@ interface BusContextType {
   mode: 'student' | 'driver';
   setMode: (mode: 'student' | 'driver') => void;
   isDriverBroadcasting: boolean;
+
+  // Authentication & Session
+  isAuthenticated: boolean;
+  currentUser: StudentUser | null;
+  loginWithGoogle: (googleData?: { name?: string; email?: string; photoUrl?: string }) => void;
+  loginWithCollegeId: (data: { name: string; rollNumber: string; department?: string; busId?: string; stopId?: string }) => void;
+  loginAsGuest: () => void;
+  logout: () => void;
 }
 
 const BusContext = createContext<BusContextType | undefined>(undefined);
@@ -185,8 +193,100 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [allRoutes, selectedBus]
   );
 
+  // Authentication & Session
+  const STORAGE_KEY_AUTH = 'dce_bus_tracker_auth_user';
+  const [currentUser, setCurrentUser] = useState<StudentUser | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_AUTH);
+        if (saved) return JSON.parse(saved);
+      } catch (_) {}
+    }
+    return null;
+  });
+
+  const isAuthenticated = Boolean(currentUser);
+
   // Student State
-  const [student, setStudent] = useState<StudentUser>(DEFAULT_STUDENT);
+  const [student, setStudent] = useState<StudentUser>(() => {
+    if (currentUser) return currentUser;
+    return DEFAULT_STUDENT;
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      setStudent(currentUser);
+    }
+  }, [currentUser]);
+
+  const loginWithGoogle = useCallback((googleData?: { name?: string; email?: string; photoUrl?: string }) => {
+    sound.playSuccess();
+    const newUser: StudentUser = {
+      name: googleData?.name || 'Karthik S.',
+      email: googleData?.email || 'karthik.s.dce@gmail.com',
+      avatarUrl:
+        googleData?.photoUrl ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+      id: 'DCE-2024-CSE-042',
+      department: 'Computer Science & Engineering',
+      semester: '6th Semester - Section A',
+      assignedBusId: 'bus-07',
+      assignedStopId: 'stop-07-3', // Tambaram West Stand
+      lat: 12.9249,
+      lng: 80.1165,
+      authProvider: 'google',
+    };
+    setCurrentUser(newUser);
+    setStudent(newUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(newUser));
+    }
+  }, []);
+
+  const loginWithCollegeId = useCallback((data: { name: string; rollNumber: string; department?: string; busId?: string; stopId?: string }) => {
+    sound.playSuccess();
+    const newUser: StudentUser = {
+      name: data.name || 'DCE Student',
+      id: data.rollNumber || 'DCE-2024-STUDENT',
+      department: data.department || 'Computer Science & Engineering',
+      semester: '6th Semester',
+      assignedBusId: data.busId || 'bus-07',
+      assignedStopId: data.stopId || 'stop-07-3',
+      lat: 12.9249,
+      lng: 80.1165,
+      authProvider: 'college',
+    };
+    setCurrentUser(newUser);
+    setStudent(newUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(newUser));
+    }
+  }, []);
+
+  const loginAsGuest = useCallback(() => {
+    sound.playClick();
+    const guestUser: StudentUser = {
+      ...DEFAULT_STUDENT,
+      name: 'Guest Passenger',
+      id: 'DCE-GUEST-PASS',
+      authProvider: 'guest',
+    };
+    setCurrentUser(guestUser);
+    setStudent(guestUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(guestUser));
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    sound.playClick();
+    setCurrentUser(null);
+    setStudent(DEFAULT_STUDENT);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_AUTH);
+    }
+  }, []);
+
   const studentStop = useMemo(() => {
     const found = selectedRoute.stops.find((s) => s.id === student.assignedStopId);
     return found || selectedRoute.stops[2] || selectedRoute.stops[0];
@@ -598,6 +698,12 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mode,
         setMode,
         isDriverBroadcasting,
+        isAuthenticated,
+        currentUser,
+        loginWithGoogle,
+        loginWithCollegeId,
+        loginAsGuest,
+        logout,
       }}
     >
       {children}

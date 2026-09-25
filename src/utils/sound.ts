@@ -65,6 +65,39 @@ class MobilityAudioSystem {
   }
 
   /**
+   * Harmonious confirmation chime on successful actions (e.g. login)
+   */
+  public playSuccess() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const notes = [523.25, 659.25, 783.99]; // C5 -> E5 -> G5
+      notes.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        const start = this.ctx.currentTime + idx * 0.08;
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0.08, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.3);
+      });
+    } catch {
+      // Audio suppressed
+    }
+  }
+
+  /**
    * Calming, modern two-tone chime when bus is approaching
    */
   public playApproachingChime() {
