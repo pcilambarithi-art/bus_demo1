@@ -935,7 +935,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   return (
     <div className={`relative w-full h-full overflow-hidden select-none ${className}`}>
       
-      {/* 1. Google Maps Layer (Google Maps Platform API key AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao) */}
+      {/* 1. Google Maps Layer (Google Maps Platform API) */}
       <div
         ref={googleContainerRef}
         className={`w-full h-full absolute inset-0 z-0 outline-none transition-opacity duration-300 ${

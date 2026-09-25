@@ -5,12 +5,11 @@ export const API_KEY =
   '';
 
 export const GOOGLE_MAPS_API_KEY =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-  'AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao';
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export const GOOGLE_MAPS_SCRIPT_URL =
   import.meta.env.VITE_GOOGLE_MAPS_SCRIPT_URL ||
-  `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+  (GOOGLE_MAPS_API_KEY ? `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places` : '');
 
 let googleMapsPromise: Promise<void> | null = null;
 

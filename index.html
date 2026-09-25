@@ -104,8 +104,18 @@
           }
         });
       }
+    <script>
+      (function() {
+        var gKey = (typeof window !== 'undefined' && (window as any)?.__GOOGLE_MAPS_KEY) || '';
+        if (gKey) {
+          var s = document.createElement('script');
+          s.src = 'https://maps.googleapis.com/maps/api/js?key=' + gKey + '&libraries=places&callback=initMap';
+          s.async = true;
+          s.defer = true;
+          document.head.appendChild(s);
+        }
+      })();
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&libraries=places&callback=initMap" async defer></script>
   </head>
   <body class="bg-[#070B19] text-slate-100 selection:bg-cyan-500 selection:text-black overflow-x-hidden antialiased font-sans">
     <div id="root">
