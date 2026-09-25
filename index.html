@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" class="dark scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>DCE Bus Tracker — Dhanalakshmi College of Engineering, Chennai</title>
+    <meta name="description" content="Official Real-Time GPS College Bus Tracking System for Dhanalakshmi College of Engineering (DCE), Chennai, Tamil Nadu with live telemetry, map navigation, and proximity alerts." />
+    <meta name="theme-color" content="#070B19" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./manifest.json" />
+
+    <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Google Maps API with user key and callback hook -->
+    <script>
+      window.initMap = function() {
+        window.googleMapsReady = true;
+        window.dispatchEvent(new Event('google-maps-ready'));
+      };
+      window.gm_authFailure = function() {
+        window.googleMapsAuthFailed = true;
+        window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
+        console.warn('Google Maps API quota/auth limit reached. Falling back to high-performance Vector map.');
+      };
+      window.addEventListener('error', function(event) {
+        if (event.filename && (event.filename.includes('maps.googleapis.com') || event.filename.includes('maps.gstatic.com'))) {
+          window.googleMapsAuthFailed = true;
+          window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
+        }
+      });
+    </script>
+    <!-- Instant theme detector before DOM paint (prevents flicker) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('bus_tracker_theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = saved === 'dark' || (!saved && prefersDark) || (saved === 'system' && prefersDark);
+          if (saved === 'light' || (!saved && !prefersDark) || (saved === 'system' && !prefersDark)) {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Theme-aware baseline styles -->
+    <style>
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        transition: background-color 0.25s ease, color 0.25s ease;
+      }
+      html.dark, html.dark body, html.dark #root {
+        background-color: #070B19;
+        color: #f1f5f9;
+      }
+      html.light, html.light body, html.light #root {
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      @keyframes pulseSlow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.75; transform: scale(1.05); }
+      }
+      @keyframes shimmerBar {
+        0% { left: -50%; }
+        100% { left: 100%; }
+      }
+    </style>
+
+    <!-- Friendly file:// protocol detector -->
+    <script>
+      if (window.location.protocol === 'file:') {
+        window.addEventListener('DOMContentLoaded', function() {
+          var root = document.getElementById('root');
+          if (root) {
+            root.innerHTML = `
+              <div style="min-height:100vh;background:#070B19;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+                <div style="font-size:64px;margin-bottom:16px;">🚌</div>
+                <h1 style="font-size:24px;font-weight:900;color:#00F0FF;margin-bottom:8px;letter-spacing:1px;">DCE BUS TRACKER</h1>
+                <p style="font-size:15px;color:#94a3b8;max-width:500px;line-height:1.6;margin-bottom:24px;">
+                  You opened this HTML file directly from disk (<code>file:///</code>). Modern web applications require a local development server to run.
+                </p>
+                <div style="background:#0B132B;border:1px solid rgba(0,240,255,0.4);border-radius:16px;padding:20px 28px;text-align:left;font-family:monospace;font-size:14px;color:#38bdf8;box-shadow:0 0 25px rgba(6,182,212,0.25);margin-bottom:24px;">
+                  <div style="color:#64748b;margin-bottom:4px;"># In PowerShell:</div>
+                  <div style="color:#ffffff;font-weight:bold;">cd D:\\github</div>
+                  <div style="color:#00F0FF;font-weight:bold;">npm run dev</div>
+                </div>
+                <p style="color:#cbd5e1;font-size:14px;">Then open: <a href="http://localhost:5173" style="color:#00F0FF;text-decoration:underline;font-weight:bold;">http://localhost:5173</a></p>
+              </div>
+            `;
+          }
+        });
+      }
+    <script>
+      (function() {
+        var gKey = (typeof window !== 'undefined' && (window as any)?.__GOOGLE_MAPS_KEY) || '';
+        if (gKey) {
+          var s = document.createElement('script');
+          s.src = 'https://maps.googleapis.com/maps/api/js?key=' + gKey + '&libraries=places&callback=initMap';
+          s.async = true;
+          s.defer = true;
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DL4mSTXI.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cv4BWI6O.css">
+  </head>
+  <body class="bg-[#070B19] text-slate-100 selection:bg-cyan-500 selection:text-black overflow-x-hidden antialiased font-sans">
+    <div id="root">
+      <div style="min-height:100vh;background:#070B19;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="font-size:54px;margin-bottom:16px;animation:pulseSlow 1.8s infinite ease-in-out;">🚌</div>
+        <div style="font-size:18px;font-weight:900;letter-spacing:2px;color:#00F0FF;text-transform:uppercase;">DHANALAKSHMI COLLEGE OF ENGINEERING</div>
+        <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-top:6px;letter-spacing:1px;font-family:monospace;">DCE BUS TRACKER OS</div>
+        <div style="margin-top:24px;width:160px;height:3px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;position:relative;">
+          <div style="position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#00F0FF,#3B82F6);border-radius:4px;animation:shimmerBar 1.4s infinite ease-in-out;"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
