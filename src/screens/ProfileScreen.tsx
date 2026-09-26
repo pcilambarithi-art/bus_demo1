@@ -253,7 +253,7 @@ export const ProfileScreen: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold dark:text-white text-slate-800">
-                    Voice Assistant: {VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'}
+                    Voice Assistant: {VOICE_PROFILES[voiceAssistantId]?.name || 'Demodokos (AI)'}
                   </h4>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 border border-cyan-400/30">
                     {voiceSpeed}x SPEED
@@ -312,14 +312,14 @@ export const ProfileScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5 Voice Assistant Personas */}
+              {/* 3 Voice Assistant Personas */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Voice Persona (5 Assistants Available)
+                    Voice Persona (3 Assistants Available)
                   </label>
                   <span className="text-[10px] text-slate-400">
-                    Gemini 2.0 Audio + System TTS
+                    Demodokos Default • Cross-Platform Consistent
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">

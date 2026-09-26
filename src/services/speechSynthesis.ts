@@ -1,14 +1,13 @@
 /**
  * DCE Transit AI — Multi-Voice Multimodal Audio & Speech System
- * Features 5 Prebuilt Voice Assistants & 5 Configurable Playback Speeds
+ * Features 3 Streamlined Voice Assistants (Demodokos Default, 1 Female, 1 Male)
+ * Optimized for cross-platform voice consistency across Windows Desktop & Android Mobile
  *
  * Speeds: 0.9x, 0.95x, 1.0x, 1.5x, 2.0x
  * Voice Personas:
- * 1. Leda (Soothing & Warm • Female)
- * 2. Puck (Upbeat & Energetic • Male)
- * 3. Charon (Deep & Command • Male)
- * 4. Aoede (Melodious & Clear • Female)
- * 5. Fenrir (Crisp & Tactical • Modern)
+ * 1. Demodokos (Default • Trained Transit AI • Neutral)
+ * 2. Leda (Female Voice • Soothing & Clear)
+ * 3. Charon (Male Voice • Command & Deep)
  */
 
 import { API_KEY } from './api';
@@ -17,65 +16,35 @@ import type { VoiceAssistantId, VoiceAssistantProfile, VoiceSpeed } from '../typ
 export const VOICE_SPEEDS: VoiceSpeed[] = [0.9, 0.95, 1, 1.5, 2];
 
 export const VOICE_PROFILES: Record<VoiceAssistantId, VoiceAssistantProfile> = {
+  demodokos: {
+    id: 'demodokos',
+    name: 'Demodokos (AI)',
+    tag: 'Default • Transit AI',
+    gender: 'Neutral',
+    description: 'Default high-precision AI navigation copilot with cross-platform consistent neural audio',
+    geminiVoice: 'Puck',
+    pitch: 1.0,
+    sampleText: 'Demodokos transit AI active. Real-time GPS tracking and Dhanalakshmi College of Engineering arrival telemetry are verified.',
+  },
   leda: {
     id: 'leda',
-    name: 'Leda',
-    tag: 'Soothing & Warm',
+    name: 'Female Voice (Leda)',
+    tag: 'Soothing & Clear',
     gender: 'Female',
-    description: 'Calm, friendly, and poised female transit guide',
+    description: 'Calm, articulate female transit announcer with soothing clarity',
     geminiVoice: 'Leda',
     pitch: 1.05,
-    sampleText: 'Hello! I am Leda, your soothing transit guide for Dhanalakshmi College of Engineering. Bus tracking is active.',
-  },
-  puck: {
-    id: 'puck',
-    name: 'Puck',
-    tag: 'Upbeat & Energetic',
-    gender: 'Male',
-    description: 'Vibrant, high-energy, and friendly morning campus copilot',
-    geminiVoice: 'Puck',
-    pitch: 1.18,
-    sampleText: 'Hey there! I am Puck, your energetic DCE copilot. All bus routes are live and running on time!',
+    sampleText: 'Hello! I am your soothing female transit guide for Dhanalakshmi College of Engineering. Bus tracking is active.',
   },
   charon: {
     id: 'charon',
-    name: 'Charon',
-    tag: 'Deep & Command',
+    name: 'Male Voice (Charon)',
+    tag: 'Command & Deep',
     gender: 'Male',
-    description: 'Deep, authoritative, and professional transit dispatcher',
+    description: 'Authoritative, deep male transit dispatcher for clear bus guidance',
     geminiVoice: 'Charon',
-    pitch: 0.80,
-    sampleText: 'Attention passengers. This is Charon. Dhanalakshmi College express fleet telemetry is verified and live.',
-  },
-  aoede: {
-    id: 'aoede',
-    name: 'Aoede',
-    tag: 'Melodious & Clear',
-    gender: 'Female',
-    description: 'Articulate, musical, and crystal-clear acoustic voice',
-    geminiVoice: 'Aoede',
-    pitch: 1.22,
-    sampleText: 'Welcome aboard. I am Aoede, bringing you melodious and precise DCE bus arrival updates.',
-  },
-  fenrir: {
-    id: 'fenrir',
-    name: 'Fenrir',
-    tag: 'Crisp & Tactical',
-    gender: 'Neutral',
-    description: 'Fast, modern, and direct high-efficiency navigation AI',
-    geminiVoice: 'Fenrir',
-    pitch: 0.95,
-    sampleText: 'Navigation locked. I am Fenrir. Real-time GPS coordinates, speed, and ETA calculations are active.',
-  },
-  demodokos: {
-    id: 'demodokos',
-    name: 'Demodokos (v4)',
-    tag: 'Trained Audio AI',
-    gender: 'Neutral',
-    description: 'Local cmp-nct Demodokos Foundry v4 8B audio model',
-    geminiVoice: 'Puck',
-    pitch: 1.0,
-    sampleText: 'Demodokos Foundry audio pipeline active. Local 8B audio model ready for DCE transit updates.',
+    pitch: 0.85,
+    sampleText: 'Attention passengers. Express fleet telemetry is verified and live for Dhanalakshmi College of Engineering.',
   },
 };
 
@@ -85,7 +54,7 @@ const STORAGE_KEY_SPEED = 'bus_tracker_voice_speed';
 
 class TransitVoiceSynthesizer {
   private enabled: boolean = true;
-  private currentVoiceId: VoiceAssistantId = 'leda';
+  private currentVoiceId: VoiceAssistantId = 'demodokos';
   private demodokosOffline: boolean = false;
   public speed: VoiceSpeed = 0.95;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
@@ -99,15 +68,13 @@ class TransitVoiceSynthesizer {
 
       const savedVoice = localStorage.getItem(STORAGE_KEY_VOICE) as VoiceAssistantId;
       if (savedVoice && VOICE_PROFILES[savedVoice]) {
-        const hasCustomDemodokos = Boolean(
-          localStorage.getItem('demodokos_server_url') ||
-          (import.meta as any).env?.VITE_DEMODOKOS_URL
-        );
-        if (savedVoice === 'demodokos' && !hasCustomDemodokos) {
-          this.currentVoiceId = 'leda';
-        } else {
-          this.currentVoiceId = savedVoice;
-        }
+        this.currentVoiceId = savedVoice;
+      } else {
+        // Demodokos is the default voice assistant
+        this.currentVoiceId = 'demodokos';
+        try {
+          localStorage.setItem(STORAGE_KEY_VOICE, 'demodokos');
+        } catch (_) {}
       }
 
       const savedSpeed = parseFloat(localStorage.getItem(STORAGE_KEY_SPEED) || '');
@@ -210,60 +177,51 @@ class TransitVoiceSynthesizer {
 
   /**
    * Find matching system voice based on persona characteristics
+   * Prioritizes cross-platform Google and Natural voices so they sound as identical as possible across Windows and Android!
    */
   private pickSystemVoice(voiceId: VoiceAssistantId): SpeechSynthesisVoice | null {
     if (!this.voices || this.voices.length === 0) {
       this.initVoiceList();
     }
-    const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES.leda;
-    const isMale = profile.gender === 'Male';
-    const isFemale = profile.gender === 'Female';
+    const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES.demodokos;
 
-    if (voiceId === 'charon') {
-      // Deep male voice
+    if (voiceId === 'demodokos') {
+      // 1. Prioritize cross-platform Google US/UK English, natural, or neural voices
       const match = this.voices.find(
-        (v) => /rishi|guy|arthur|james|mark|david|male|deep/i.test(v.name) && v.lang.startsWith('en')
+        (v) => /google\s+us|google\s+uk|natural|neural|online|enhanced/i.test(v.name) && v.lang.startsWith('en')
       );
       if (match) return match;
-    } else if (voiceId === 'puck') {
-      // Upbeat energetic male
-      const match = this.voices.find(
-        (v) => /daniel|oliver|george|steffan|male/i.test(v.name) && v.lang.startsWith('en')
+
+      // 2. High-quality English voice fallback
+      const enMatch = this.voices.find(
+        (v) => /google/i.test(v.name) && v.lang.startsWith('en')
       );
-      if (match) return match;
-    } else if (voiceId === 'aoede') {
-      // Articulate expressive female
-      const match = this.voices.find(
-        (v) => /victoria|karen|moira|tessa|fiona|female/i.test(v.name) && v.lang.startsWith('en')
-      );
-      if (match) return match;
+      if (enMatch) return enMatch;
     } else if (voiceId === 'leda') {
-      // Warm soothing female
+      // Female voice: Prioritize cross-platform Google Female / Natural Female
       const match = this.voices.find(
-        (v) => /sonia|libby|hazel|grace|serena|samantha|zira|aria/i.test(v.name) && v.lang.startsWith('en')
+        (v) => (/google.*female|google\s+uk\s+english\s+female|google\s+us\s+english/i.test(v.name) ||
+                /female|woman|zira|sonia|libby|samantha|victoria|hazel|aria/i.test(v.name)) &&
+               v.lang.startsWith('en')
       );
       if (match) return match;
-    } else if (voiceId === 'fenrir') {
-      // Neutral crisp
+    } else if (voiceId === 'charon') {
+      // Male voice: Prioritize cross-platform Google Male / Natural Male
       const match = this.voices.find(
-        (v) => /alex|fred|google us english|en-us/i.test(v.name)
-      );
-      if (match) return match;
-    } else if (voiceId === 'demodokos') {
-      // Modern natural system voice fallback
-      const match = this.voices.find(
-        (v) => /natural|neural|online|google|enhanced/i.test(v.name) && v.lang.startsWith('en')
+        (v) => (/google.*male|google\s+uk\s+english\s+male/i.test(v.name) ||
+                /male|man|david|guy|daniel|george|mark|richard/i.test(v.name)) &&
+               v.lang.startsWith('en')
       );
       if (match) return match;
     }
 
     // Generic gender matching fallback
-    if (isFemale) {
+    if (profile.gender === 'Female') {
       const female = this.voices.find(
-        (v) => v.lang.startsWith('en') && /female|woman|girl|samantha|zira/i.test(v.name)
+        (v) => v.lang.startsWith('en') && /female|woman|zira|samantha/i.test(v.name)
       );
       if (female) return female;
-    } else if (isMale) {
+    } else if (profile.gender === 'Male') {
       const male = this.voices.find(
         (v) => v.lang.startsWith('en') && /male|man|david|daniel/i.test(v.name)
       );
@@ -604,7 +562,7 @@ class TransitVoiceSynthesizer {
 
   public testVoice(voiceId?: VoiceAssistantId, speed?: VoiceSpeed) {
     const id = voiceId || this.currentVoiceId;
-    const profile = VOICE_PROFILES[id] || VOICE_PROFILES.leda;
+    const profile = VOICE_PROFILES[id] || VOICE_PROFILES.demodokos;
     const activeSpeed = speed || this.speed;
 
     const text = `${profile.sampleText} Speaking at ${activeSpeed}x speed.`;

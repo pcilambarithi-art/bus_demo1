@@ -197,11 +197,11 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
                   ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30'
                   : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'
               }`}
-              title={`Toggle Voice: ${VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'} (${voiceSpeed}x Speed)`}
+              title={`Toggle Voice: ${VOICE_PROFILES[voiceAssistantId]?.name || 'Demodokos (AI)'} (${voiceSpeed}x Speed)`}
             >
               {autoSpeak ? <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">Voice:</span>
-              <span>{VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'} ({voiceSpeed}x)</span>
+              <span>{VOICE_PROFILES[voiceAssistantId]?.name || 'Demodokos (AI)'} ({voiceSpeed}x)</span>
             </button>
 
             <button
