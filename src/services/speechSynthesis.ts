@@ -1,49 +1,101 @@
 /**
- * DCE Transit AI — Voice Assistance System
- * Prebuilt Voice: "Leda" (Gemini Multimodal Audio)
- * Voice Assistance Speed: 0.95x
+ * DCE Transit AI — Multi-Voice Multimodal Audio & Speech System
+ * Features 5 Prebuilt Voice Assistants & 5 Configurable Playback Speeds
  *
- * User Configuration:
- * const config = {
- *   responseModalities: ["AUDIO"],
- *   speechConfig: {
- *     voiceConfig: {
- *       prebuiltVoiceConfig: {
- *         voiceName: "Leda"
- *       }
- *     }
- *   }
- * };
+ * Speeds: 0.9x, 0.95x, 1.0x, 1.5x, 2.0x
+ * Voice Personas:
+ * 1. Leda (Soothing & Warm • Female)
+ * 2. Puck (Upbeat & Energetic • Male)
+ * 3. Charon (Deep & Command • Male)
+ * 4. Aoede (Melodious & Clear • Female)
+ * 5. Fenrir (Crisp & Tactical • Modern)
  */
 
 import { API_KEY } from './api';
+import type { VoiceAssistantId, VoiceAssistantProfile, VoiceSpeed } from '../types/bus';
 
-export const GEMINI_LEDA_CONFIG = {
-  responseModalities: ['AUDIO'],
-  speechConfig: {
-    voiceConfig: {
-      prebuiltVoiceConfig: {
-        voiceName: 'Leda',
-      },
-    },
+export const VOICE_SPEEDS: VoiceSpeed[] = [0.9, 0.95, 1, 1.5, 2];
+
+export const VOICE_PROFILES: Record<VoiceAssistantId, VoiceAssistantProfile> = {
+  leda: {
+    id: 'leda',
+    name: 'Leda',
+    tag: 'Soothing & Warm',
+    gender: 'Female',
+    description: 'Calm, friendly, and poised female transit guide',
+    geminiVoice: 'Leda',
+    pitch: 1.05,
+    sampleText: 'Hello! I am Leda, your soothing transit guide for Dhanalakshmi College of Engineering. Bus tracking is active.',
+  },
+  puck: {
+    id: 'puck',
+    name: 'Puck',
+    tag: 'Upbeat & Energetic',
+    gender: 'Male',
+    description: 'Vibrant, high-energy, and friendly morning campus copilot',
+    geminiVoice: 'Puck',
+    pitch: 1.18,
+    sampleText: 'Hey there! I am Puck, your energetic DCE copilot. All bus routes are live and running on time!',
+  },
+  charon: {
+    id: 'charon',
+    name: 'Charon',
+    tag: 'Deep & Command',
+    gender: 'Male',
+    description: 'Deep, authoritative, and professional transit dispatcher',
+    geminiVoice: 'Charon',
+    pitch: 0.80,
+    sampleText: 'Attention passengers. This is Charon. Dhanalakshmi College express fleet telemetry is verified and live.',
+  },
+  aoede: {
+    id: 'aoede',
+    name: 'Aoede',
+    tag: 'Melodious & Clear',
+    gender: 'Female',
+    description: 'Articulate, musical, and crystal-clear acoustic voice',
+    geminiVoice: 'Aoede',
+    pitch: 1.22,
+    sampleText: 'Welcome aboard. I am Aoede, bringing you melodious and precise DCE bus arrival updates.',
+  },
+  fenrir: {
+    id: 'fenrir',
+    name: 'Fenrir',
+    tag: 'Crisp & Tactical',
+    gender: 'Neutral',
+    description: 'Fast, modern, and direct high-efficiency navigation AI',
+    geminiVoice: 'Fenrir',
+    pitch: 0.95,
+    sampleText: 'Navigation locked. I am Fenrir. Real-time GPS coordinates, speed, and ETA calculations are active.',
   },
 };
 
-const STORAGE_KEY = 'bus_tracker_leda_voice_enabled';
+const STORAGE_KEY_ENABLED = 'bus_tracker_voice_enabled';
+const STORAGE_KEY_VOICE = 'bus_tracker_voice_assistant_id';
+const STORAGE_KEY_SPEED = 'bus_tracker_voice_speed';
 
-class LedaVoiceSynthesizer {
+class TransitVoiceSynthesizer {
   private enabled: boolean = true;
+  private currentVoiceId: VoiceAssistantId = 'leda';
+  public speed: VoiceSpeed = 0.95;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudio: HTMLAudioElement | null = null;
-  private preferredVoice: SpeechSynthesisVoice | null = null;
-  public speed: number = 0.95; // The voice assistance speed is 0.95
+  private voices: SpeechSynthesisVoice[] = [];
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      this.enabled = saved !== null ? saved === 'true' : true;
+      const savedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
+      this.enabled = savedEnabled !== null ? savedEnabled === 'true' : true;
 
-      // Populate Web Speech voices for zero-latency client fallback
+      const savedVoice = localStorage.getItem(STORAGE_KEY_VOICE) as VoiceAssistantId;
+      if (savedVoice && VOICE_PROFILES[savedVoice]) {
+        this.currentVoiceId = savedVoice;
+      }
+
+      const savedSpeed = parseFloat(localStorage.getItem(STORAGE_KEY_SPEED) || '');
+      if (VOICE_SPEEDS.includes(savedSpeed as VoiceSpeed)) {
+        this.speed = savedSpeed as VoiceSpeed;
+      }
+
       if ('speechSynthesis' in window) {
         this.initVoiceList();
         window.speechSynthesis.onvoiceschanged = () => {
@@ -55,22 +107,7 @@ class LedaVoiceSynthesizer {
 
   private initVoiceList() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) return;
-
-    // Prioritize graceful female voices that embody the "Leda" persona
-    const candidates = [
-      voices.find((v) => /leda/i.test(v.name)),
-      voices.find((v) => v.lang.startsWith('en-GB') && /sonia|libby|hazel|grace|serena|victoria/i.test(v.name)),
-      voices.find((v) => v.lang.startsWith('en-GB') && /female/i.test(v.name)),
-      voices.find((v) => /Google UK English Female/i.test(v.name)),
-      voices.find((v) => v.lang === 'en-GB'),
-      voices.find((v) => /samantha|karen|moira|victoria/i.test(v.name)),
-      voices.find((v) => v.lang.startsWith('en') && /jenny|aria|zira/i.test(v.name)),
-      voices.find((v) => v.lang.startsWith('en')),
-    ];
-
-    this.preferredVoice = candidates.find(Boolean) || voices[0] || null;
+    this.voices = window.speechSynthesis.getVoices() || [];
   }
 
   public isEnabled(): boolean {
@@ -79,7 +116,9 @@ class LedaVoiceSynthesizer {
 
   public setEnabled(enabled: boolean) {
     this.enabled = enabled;
-    localStorage.setItem(STORAGE_KEY, String(enabled));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_ENABLED, String(enabled));
+    }
     if (!enabled) {
       this.stop();
     }
@@ -88,6 +127,32 @@ class LedaVoiceSynthesizer {
   public toggle(): boolean {
     this.setEnabled(!this.enabled);
     return this.enabled;
+  }
+
+  public getVoice(): VoiceAssistantId {
+    return this.currentVoiceId;
+  }
+
+  public setVoice(voiceId: VoiceAssistantId) {
+    if (VOICE_PROFILES[voiceId]) {
+      this.currentVoiceId = voiceId;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_VOICE, voiceId);
+      }
+    }
+  }
+
+  public getSpeed(): VoiceSpeed {
+    return this.speed;
+  }
+
+  public setSpeed(speed: VoiceSpeed) {
+    if (VOICE_SPEEDS.includes(speed)) {
+      this.speed = speed;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_SPEED, String(speed));
+      }
+    }
   }
 
   public stop() {
@@ -111,28 +176,86 @@ class LedaVoiceSynthesizer {
     return Boolean(this.currentUtterance || synthSpeaking || audioPlaying);
   }
 
-  /**
-   * Cleans text for natural speech pronunciation (strips markdown, URLs, emojis)
-   */
   private sanitizeForSpeech(raw: string): string {
     return raw
-      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
-      .replace(/\*([^*]+)\*/g, '$1') // Italic
-      .replace(/`([^`]+)`/g, '$1') // Code
-      .replace(/#+\s/g, '') // Headings
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links
-      .replace(/https?:\/\/\S+/g, '') // Bare URLs
-      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Emojis
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/#+\s/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
       .replace(/\s+/g, ' ')
       .trim();
   }
 
   /**
-   * Speak using Gemini "Leda" Audio or Web Speech fallback at 0.95 speed
+   * Find matching system voice based on persona characteristics
+   */
+  private pickSystemVoice(voiceId: VoiceAssistantId): SpeechSynthesisVoice | null {
+    if (!this.voices || this.voices.length === 0) {
+      this.initVoiceList();
+    }
+    const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES.leda;
+    const isMale = profile.gender === 'Male';
+    const isFemale = profile.gender === 'Female';
+
+    if (voiceId === 'charon') {
+      // Deep male voice
+      const match = this.voices.find(
+        (v) => /rishi|guy|arthur|james|mark|david|male|deep/i.test(v.name) && v.lang.startsWith('en')
+      );
+      if (match) return match;
+    } else if (voiceId === 'puck') {
+      // Upbeat energetic male
+      const match = this.voices.find(
+        (v) => /daniel|oliver|george|steffan|male/i.test(v.name) && v.lang.startsWith('en')
+      );
+      if (match) return match;
+    } else if (voiceId === 'aoede') {
+      // Articulate expressive female
+      const match = this.voices.find(
+        (v) => /victoria|karen|moira|tessa|fiona|female/i.test(v.name) && v.lang.startsWith('en')
+      );
+      if (match) return match;
+    } else if (voiceId === 'leda') {
+      // Warm soothing female
+      const match = this.voices.find(
+        (v) => /sonia|libby|hazel|grace|serena|samantha|zira|aria/i.test(v.name) && v.lang.startsWith('en')
+      );
+      if (match) return match;
+    } else if (voiceId === 'fenrir') {
+      // Neutral crisp
+      const match = this.voices.find(
+        (v) => /alex|fred|google us english|en-us/i.test(v.name)
+      );
+      if (match) return match;
+    }
+
+    // Generic gender matching fallback
+    if (isFemale) {
+      const female = this.voices.find(
+        (v) => v.lang.startsWith('en') && /female|woman|girl|samantha|zira/i.test(v.name)
+      );
+      if (female) return female;
+    } else if (isMale) {
+      const male = this.voices.find(
+        (v) => v.lang.startsWith('en') && /male|man|david|daniel/i.test(v.name)
+      );
+      if (male) return male;
+    }
+
+    return this.voices.find((v) => v.lang.startsWith('en')) || this.voices[0] || null;
+  }
+
+  /**
+   * Speak using Gemini 2.0 Multimodal Audio or high-fidelity Web Speech fallback
    */
   public async speak(
     text: string,
-    options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
+    options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void },
+    overrideVoiceId?: VoiceAssistantId,
+    overrideSpeed?: VoiceSpeed
   ): Promise<void> {
     if (!this.enabled) return;
 
@@ -140,28 +263,34 @@ class LedaVoiceSynthesizer {
     const cleanText = this.sanitizeForSpeech(text);
     if (!cleanText) return;
 
-    // 1. Try Gemini 2.0 Audio with prebuiltVoiceConfig: "Leda"
+    const voiceId = overrideVoiceId || this.currentVoiceId;
+    const speed = overrideSpeed || this.speed;
+
+    // 1. Try Gemini Multimodal Audio API if key is present
     if (API_KEY && !API_KEY.includes('YOUR_')) {
       try {
-        const played = await this.speakWithGeminiAudio(cleanText, options);
+        const played = await this.speakWithGeminiAudio(cleanText, voiceId, speed, options);
         if (played) return;
       } catch (err) {
-        console.warn('[Voice Assistant] Gemini Leda audio generation fallback to Web Speech:', err);
+        console.warn('[Voice Assistant] Gemini audio generation fallback to Web Speech:', err);
       }
     }
 
-    // 2. High-Fidelity Web Speech API (Leda persona @ 0.95 speed)
-    this.speakWithWebSpeech(cleanText, options);
+    // 2. High-Fidelity Web Speech API
+    this.speakWithWebSpeech(cleanText, voiceId, speed, options);
   }
 
   /**
-   * Query Gemini 2.0 Flash Audio API with prebuiltVoiceConfig: { voiceName: "Leda" }
+   * Gemini Audio Generation using the selected prebuilt voice
    */
   private async speakWithGeminiAudio(
     text: string,
+    voiceId: VoiceAssistantId,
+    speed: VoiceSpeed,
     options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
   ): Promise<boolean> {
     try {
+      const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES.leda;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
       const response = await fetch(url, {
         method: 'POST',
@@ -173,7 +302,16 @@ class LedaVoiceSynthesizer {
               parts: [{ text: `Please speak the following message clearly: ${text}` }],
             },
           ],
-          generationConfig: GEMINI_LEDA_CONFIG,
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: profile.geminiVoice,
+                },
+              },
+            },
+          },
         }),
       });
 
@@ -184,7 +322,6 @@ class LedaVoiceSynthesizer {
 
       if (!inlineData?.data) return false;
 
-      // Base64 to ArrayBuffer
       const binaryString = atob(inlineData.data);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
@@ -202,7 +339,7 @@ class LedaVoiceSynthesizer {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       this.currentAudio = audio;
-      audio.playbackRate = this.speed; // Voice assistance speed is 0.95
+      audio.playbackRate = speed;
 
       audio.onplay = () => options?.onStart?.();
       audio.onended = () => {
@@ -221,9 +358,6 @@ class LedaVoiceSynthesizer {
     }
   }
 
-  /**
-   * Helper to format raw PCM into standard playable WAV
-   */
   private pcmToWavBlob(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
     const numChannels = 1;
     const bitsPerSample = 16;
@@ -232,20 +366,17 @@ class LedaVoiceSynthesizer {
     const buffer = new ArrayBuffer(44 + pcmData.length);
     const view = new DataView(buffer);
 
-    // RIFF header
     this.writeAscii(view, 0, 'RIFF');
     view.setUint32(4, 36 + pcmData.length, true);
     this.writeAscii(view, 8, 'WAVE');
-    // fmt chunk
     this.writeAscii(view, 12, 'fmt ');
     view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(20, 1, true);
     view.setUint16(22, numChannels, true);
     view.setUint32(24, sampleRate, true);
     view.setUint32(28, byteRate, true);
     view.setUint16(32, blockAlign, true);
     view.setUint16(34, bitsPerSample, true);
-    // data chunk
     this.writeAscii(view, 36, 'data');
     view.setUint32(40, pcmData.length, true);
 
@@ -259,30 +390,29 @@ class LedaVoiceSynthesizer {
     }
   }
 
-  /**
-   * Web Speech API (Leda persona with speed = 0.95)
-   */
   private speakWithWebSpeech(
     text: string,
+    voiceId: VoiceAssistantId,
+    speed: VoiceSpeed,
     options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
   ) {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
-    if (!this.preferredVoice) {
-      this.initVoiceList();
-    }
+    const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES.leda;
+    const chosenVoice = this.pickSystemVoice(voiceId);
 
     const utterance = new SpeechSynthesisUtterance(text);
     this.currentUtterance = utterance;
 
-    if (this.preferredVoice) {
-      utterance.voice = this.preferredVoice;
+    if (chosenVoice) {
+      utterance.voice = chosenVoice;
+      utterance.lang = chosenVoice.lang;
+    } else {
+      utterance.lang = 'en-US';
     }
 
-    // Persona tuning: Leda @ 0.95 speed
-    utterance.lang = this.preferredVoice?.lang || 'en-GB';
-    utterance.rate = this.speed; // Exact voice assistance speed: 0.95
-    utterance.pitch = 1.05; // Calm, poised, clear
+    utterance.rate = speed;
+    utterance.pitch = profile.pitch;
     utterance.volume = 1.0;
 
     utterance.onstart = () => {
@@ -302,9 +432,6 @@ class LedaVoiceSynthesizer {
     window.speechSynthesis.speak(utterance);
   }
 
-  /**
-   * Spoken milestone announcement for arriving DCE buses
-   */
   public announceBusMilestone(
     milestone: '1km' | '500m' | '200m' | 'arrived',
     busNumber: string,
@@ -332,15 +459,15 @@ class LedaVoiceSynthesizer {
     this.speak(message);
   }
 
-  /**
-   * Test voice with Leda persona at 0.95 speed
-   */
-  public testVoice() {
-    this.speak(
-      "Good day. I am Leda, the official voice assistant for Dhanalakshmi College of Engineering, speaking at zero point nine five speed. Real-time bus tracking is active."
-    );
+  public testVoice(voiceId?: VoiceAssistantId, speed?: VoiceSpeed) {
+    const id = voiceId || this.currentVoiceId;
+    const profile = VOICE_PROFILES[id] || VOICE_PROFILES.leda;
+    const activeSpeed = speed || this.speed;
+
+    const text = `${profile.sampleText} Speaking at ${activeSpeed}x speed.`;
+    this.speak(text, undefined, id, activeSpeed);
   }
 }
 
-export const gracefulVoice = new LedaVoiceSynthesizer();
+export const gracefulVoice = new TransitVoiceSynthesizer();
 export const ledaVoice = gracefulVoice;

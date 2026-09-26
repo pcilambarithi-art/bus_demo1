@@ -11,6 +11,8 @@ import type {
   ActiveTab,
   BusMovementStatus,
   LocationPermissionState,
+  VoiceAssistantId,
+  VoiceSpeed,
 } from '../types/bus';
 import { BUS_ROUTES, BUS_VEHICLES, DEFAULT_STUDENT } from '../data/busRoutes';
 import { calculateDistanceMeters, calculateBearing } from '../utils/geo';
@@ -39,7 +41,11 @@ interface BusContextType {
   toggleSound: () => void;
   isGracefulVoiceEnabled: boolean;
   toggleGracefulVoice: () => void;
-  testGracefulVoice: () => void;
+  voiceAssistantId: VoiceAssistantId;
+  setVoiceAssistantId: (id: VoiceAssistantId) => void;
+  voiceSpeed: VoiceSpeed;
+  setVoiceSpeed: (speed: VoiceSpeed) => void;
+  testGracefulVoice: (voiceId?: VoiceAssistantId, speed?: VoiceSpeed) => void;
 
   // Route & Vehicles
   allRoutes: BusRoute[];
@@ -367,14 +373,32 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveAlert(null);
   }, []);
 
-  // English Graceful Lady Voice
+  // Transit Voice Assistant Personas & Speeds
   const [isGracefulVoiceEnabled, setIsGracefulVoiceEnabled] = useState<boolean>(() => gracefulVoice.isEnabled());
+  const [voiceAssistantId, setVoiceAssistantIdState] = useState<VoiceAssistantId>(() => gracefulVoice.getVoice());
+  const [voiceSpeed, setVoiceSpeedState] = useState<VoiceSpeed>(() => gracefulVoice.getSpeed());
+
   const toggleGracefulVoice = useCallback(() => {
     const updated = gracefulVoice.toggle();
     setIsGracefulVoiceEnabled(updated);
   }, []);
-  const testGracefulVoice = useCallback(() => {
-    gracefulVoice.testVoice();
+
+  const setVoiceAssistantId = useCallback((id: VoiceAssistantId) => {
+    sound.playClick();
+    gracefulVoice.setVoice(id);
+    setVoiceAssistantIdState(id);
+    gracefulVoice.testVoice(id);
+  }, []);
+
+  const setVoiceSpeed = useCallback((speed: VoiceSpeed) => {
+    sound.playClick();
+    gracefulVoice.setSpeed(speed);
+    setVoiceSpeedState(speed);
+    gracefulVoice.testVoice(undefined, speed);
+  }, []);
+
+  const testGracefulVoice = useCallback((voiceId?: VoiceAssistantId, speed?: VoiceSpeed) => {
+    gracefulVoice.testVoice(voiceId, speed);
   }, []);
 
   const triggerCustomAlert = useCallback((tier: ProximityAlert['tier'], title: string, message: string) => {
@@ -693,6 +717,10 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isGracefulVoiceEnabled,
         toggleGracefulVoice,
         testGracefulVoice,
+        voiceAssistantId,
+        setVoiceAssistantId,
+        voiceSpeed,
+        setVoiceSpeed,
         allRoutes,
         allBuses,
         selectedRoute,

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useBus } from '../context/BusContext';
 import { GlassCard } from '../components/GlassCard';
-import type { ThemeMode } from '../types/bus';
+import type { ThemeMode, VoiceAssistantId } from '../types/bus';
+import { VOICE_PROFILES, VOICE_SPEEDS } from '../services/speechSynthesis';
 import {
   Bus,
   MapPin,
@@ -35,6 +36,10 @@ export const ProfileScreen: React.FC = () => {
     isGracefulVoiceEnabled,
     toggleGracefulVoice,
     testGracefulVoice,
+    voiceAssistantId,
+    setVoiceAssistantId,
+    voiceSpeed,
+    setVoiceSpeed,
     useRealGeolocation,
     setUseRealGeolocation,
     setIsApkModalOpen,
@@ -238,43 +243,136 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* OPTION: Gemini Audio Voice Assistance (Leda @ 0.95 Speed) */}
-        <div className="py-3.5">
+        {/* OPTION: Gemini Audio Voice Assistance (5 Personas + 5 Speeds) */}
+        <div className="py-4 border-b dark:border-white/10 border-slate-200/80">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
-                <Volume2 className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+                <Volume2 className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold dark:text-white text-slate-800">
-                    Voice Assistant: Leda
+                    Voice Assistant: {VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'}
                   </h4>
-                  <span className="px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-cyan-500/20 text-cyan-400 border border-cyan-400/30">
-                    0.95x SPEED
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 border border-cyan-400/30">
+                    {voiceSpeed}x SPEED
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Prebuilt Voice: Leda • Spoken transit milestones & AI Copilot narration
+                  {VOICE_PROFILES[voiceAssistantId]?.description || 'Spoken transit milestones & AI Copilot narration'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
-                onClick={testGracefulVoice}
-                className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white/5 hover:bg-cyan-500/20 border border-white/10 text-cyan-400 transition-all active:scale-95"
-                title="Sample Voice"
+                onClick={() => testGracefulVoice(voiceAssistantId, voiceSpeed)}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-600 dark:text-cyan-400 transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Sample Current Voice"
               >
-                Sample
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Sample</span>
               </button>
               <input
                 type="checkbox"
                 checked={isGracefulVoiceEnabled}
                 onChange={toggleGracefulVoice}
                 className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 cursor-pointer"
+                title="Enable/Disable Voice Assistant"
               />
             </div>
           </div>
+
+          {isGracefulVoiceEnabled && (
+            <div className="mt-4 space-y-4 pl-0 sm:pl-13 animate-[fadeIn_0.2s_ease-out]">
+              {/* Speed Selector (0.9, 0.95, 1, 1.5, 2) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Playback Speed
+                  </label>
+                  <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono font-semibold">
+                    Current: {voiceSpeed}x
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {VOICE_SPEEDS.map((spd) => (
+                    <button
+                      key={spd}
+                      onClick={() => setVoiceSpeed(spd)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        voiceSpeed === spd
+                          ? 'bg-cyan-500 text-black shadow-md scale-105 ring-2 ring-cyan-400/50'
+                          : 'dark:bg-white/5 bg-slate-100 dark:text-slate-300 text-slate-700 border dark:border-white/10 border-slate-200 hover:border-cyan-400/60'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5 Voice Assistant Personas */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Voice Persona (5 Assistants Available)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Gemini 2.0 Audio + System TTS
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {(Object.keys(VOICE_PROFILES) as VoiceAssistantId[]).map((id) => {
+                    const prof = VOICE_PROFILES[id];
+                    const isSelected = voiceAssistantId === id;
+                    return (
+                      <div
+                        key={id}
+                        onClick={() => setVoiceAssistantId(id)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between select-none ${
+                          isSelected
+                            ? 'dark:bg-cyan-500/15 bg-cyan-50/80 border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.18)] ring-1 ring-cyan-400'
+                            : 'dark:bg-white/5 bg-slate-50 dark:border-white/10 border-slate-200 hover:border-cyan-500/40'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shadow-sm ${
+                                isSelected
+                                  ? 'bg-cyan-500 text-black'
+                                  : 'dark:bg-white/10 bg-slate-200 dark:text-white text-slate-800'
+                              }`}
+                            >
+                              {prof.name[0]}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold dark:text-white text-slate-900">
+                                  {prof.name}
+                                </span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded-full font-semibold dark:bg-white/10 bg-slate-200 text-slate-500 dark:text-slate-300">
+                                  {prof.gender}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-medium block">
+                                {prof.tag}
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5" />}
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                          {prof.description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* OPTION 4: Location Settings (Requirement 14) */}

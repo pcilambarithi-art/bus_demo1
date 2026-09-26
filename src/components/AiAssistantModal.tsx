@@ -3,7 +3,7 @@ import { useBus } from '../context/BusContext';
 import { Sparkles, Send, X, Bot, CheckCircle2, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { queryTransitAssistant } from '../services/api';
 import { formatDistance } from '../utils/geo';
-import { gracefulVoice } from '../services/speechSynthesis';
+import { gracefulVoice, VOICE_PROFILES } from '../services/speechSynthesis';
 
 interface AiAssistantModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface AiAssistantModalProps {
 }
 
 export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onClose }) => {
-  const { selectedBus, selectedRoute, studentStop, telemetry } = useBus();
+  const { selectedBus, selectedRoute, studentStop, telemetry, voiceAssistantId, voiceSpeed } = useBus();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
     {
@@ -38,11 +38,16 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
       return;
     }
 
-    gracefulVoice.speak(text, {
-      onStart: () => setSpeakingIndex(index),
-      onEnd: () => setSpeakingIndex(null),
-      onError: () => setSpeakingIndex(null),
-    });
+    gracefulVoice.speak(
+      text,
+      {
+        onStart: () => setSpeakingIndex(index),
+        onEnd: () => setSpeakingIndex(null),
+        onError: () => setSpeakingIndex(null),
+      },
+      voiceAssistantId,
+      voiceSpeed
+    );
   };
 
   if (!isOpen) return null;
@@ -77,11 +82,16 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
       setMessages((prev) => [...prev, { sender: 'ai', text: response }]);
 
       if (autoSpeak) {
-        gracefulVoice.speak(response, {
-          onStart: () => setSpeakingIndex(newIndex),
-          onEnd: () => setSpeakingIndex(null),
-          onError: () => setSpeakingIndex(null),
-        });
+        gracefulVoice.speak(
+          response,
+          {
+            onStart: () => setSpeakingIndex(newIndex),
+            onEnd: () => setSpeakingIndex(null),
+            onError: () => setSpeakingIndex(null),
+          },
+          voiceAssistantId,
+          voiceSpeed
+        );
       }
     } catch {
       const fallbackText = `Bus ${selectedBus.busNumber} (${selectedRoute.name}) - Speed: ${telemetry.speedKmh} km/h. Moving near ${telemetry.nextStop.shortName}. Will reach ${studentStop.shortName} in ~${telemetry.etaMinutes} mins.`;
@@ -94,11 +104,16 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
         },
       ]);
       if (autoSpeak) {
-        gracefulVoice.speak(fallbackText, {
-          onStart: () => setSpeakingIndex(newIndex),
-          onEnd: () => setSpeakingIndex(null),
-          onError: () => setSpeakingIndex(null),
-        });
+        gracefulVoice.speak(
+          fallbackText,
+          {
+            onStart: () => setSpeakingIndex(newIndex),
+            onEnd: () => setSpeakingIndex(null),
+            onError: () => setSpeakingIndex(null),
+          },
+          voiceAssistantId,
+          voiceSpeed
+        );
       }
     } finally {
       setIsLoading(false);
@@ -139,7 +154,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Gemini Audio Leda Voice Toggle (0.8x Speed) */}
+            {/* Gemini Audio Voice Toggle */}
             <button
               onClick={() => {
                 const next = !autoSpeak;
@@ -154,11 +169,11 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
                   ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30'
                   : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'
               }`}
-              title="Toggle Gemini Leda Voice (0.95x Speed)"
+              title={`Toggle Voice: ${VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'} (${voiceSpeed}x Speed)`}
             >
               {autoSpeak ? <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">Voice:</span>
-              <span>Leda (0.95x)</span>
+              <span>{VOICE_PROFILES[voiceAssistantId]?.name || 'Leda'} ({voiceSpeed}x)</span>
             </button>
 
             <button
