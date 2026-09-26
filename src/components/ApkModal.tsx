@@ -121,6 +121,31 @@ export const ApkModal: React.FC = () => {
         {/* Tab 2: Native APK */}
         {activeTab === 'apk' && (
           <div className="py-4 space-y-3">
+            {/* Official APK Icon Preview */}
+            <div className="flex items-center gap-3 p-2.5 rounded-2xl dark:bg-white/5 bg-slate-50 border dark:border-white/10 border-slate-200">
+              <img
+                src="./app-logo.jpg"
+                alt="DCE College Bus Tracking APK Icon"
+                className="w-14 h-14 rounded-2xl object-cover shadow-lg border border-cyan-400/40"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs dark:text-white text-slate-900 truncate">
+                    DCE College Bus Tracking
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[10px] font-mono font-bold">
+                    APK ICON
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Dhanalakshmi College of Engineering
+                </p>
+                <p className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                  HD Adaptive Mipmaps Configured ✓
+                </p>
+              </div>
+            </div>
+
             <div className="p-3 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/10 border-slate-200">
               <div className="flex items-center gap-2 text-xs font-semibold text-cyan-400 mb-1.5">
                 <Terminal className="w-3.5 h-3.5" />
