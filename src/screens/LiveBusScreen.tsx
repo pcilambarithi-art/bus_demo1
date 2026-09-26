@@ -16,6 +16,8 @@ import {
   Volume2,
   VolumeX,
   User,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 export const LiveBusScreen: React.FC = () => {
@@ -34,17 +36,30 @@ export const LiveBusScreen: React.FC = () => {
   } = useBus();
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   return (
-    <div className="relative w-full h-[calc(100vh-5rem)] lg:h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden pb-16 lg:pb-0 animate-[fadeIn_0.3s_ease-out]">
+    <div
+      className={`relative w-full ${
+        isMapFullscreen
+          ? 'fixed inset-0 z-[70] w-screen h-[100dvh] bg-[#070B19]'
+          : 'h-[calc(100vh-5rem)] lg:h-[calc(100vh-4.5rem)] pb-16 lg:pb-0'
+      } flex flex-col overflow-hidden animate-[fadeIn_0.3s_ease-out]`}
+    >
       
       {/* Top Floating Glass Header (Clean and responsive) */}
       <div className="absolute top-2 sm:top-3 left-2 right-2 sm:left-4 sm:right-4 z-40 flex items-center justify-between pointer-events-none gap-1 sm:gap-2">
         <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto shrink-0">
           {/* Back button */}
           <button
-            onClick={() => setActiveTab('home')}
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg active:scale-95 transition-all shrink-0"
+            onClick={() => {
+              if (isMapFullscreen) {
+                setIsMapFullscreen(false);
+              } else {
+                setActiveTab('home');
+              }
+            }}
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg active:scale-95 transition-all shrink-0 cursor-pointer"
             aria-label="Back to Home"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -62,8 +77,32 @@ export const LiveBusScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Controls: GPS Alert + Bus Switcher */}
+        {/* Action Controls: Dedicated Full Screen + GPS Alert + Sound + Bus Switcher */}
         <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto shrink-0">
+          {/* Dedicated Full Screen Button (Mobile & Desktop) */}
+          <button
+            onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+            className={`px-2 sm:px-3 py-1 sm:py-2 rounded-xl sm:rounded-2xl backdrop-blur-2xl border flex items-center gap-1.5 active:scale-95 transition-all text-[10px] sm:text-xs font-extrabold shadow-lg shrink-0 cursor-pointer ${
+              isMapFullscreen
+                ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+                : 'dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border-cyan-400/50 hover:bg-cyan-500/20 text-cyan-400'
+            }`}
+            title={isMapFullscreen ? 'Exit Full Screen' : 'Open Full Screen Map'}
+            aria-label="Toggle Full Screen Map"
+          >
+            {isMapFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                <span>Exit Full</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                <span>Full Screen</span>
+              </>
+            )}
+          </button>
+
           {/* Enable GPS Button (Shows if not granted) */}
           {locationPermissionState !== 'granted' && (
             <button
@@ -116,17 +155,23 @@ export const LiveBusScreen: React.FC = () => {
       </div>
 
       {/* Main Full-Bleed Map (Takes up full screen on mobile) */}
-      <div className="flex-1 w-full h-full rounded-[24px] overflow-hidden border dark:border-white/10 border-slate-200 shadow-2xl relative">
+      <div className={`flex-1 w-full h-full ${isMapFullscreen ? 'rounded-none' : 'rounded-[24px]'} overflow-hidden border dark:border-white/10 border-slate-200 shadow-2xl relative`}>
         <InteractiveMap
           className="w-full h-full"
           showControls={true}
           showPlacesSearch={false}
           topOffset={true}
+          isFullscreen={isMapFullscreen}
+          onToggleFullscreen={() => setIsMapFullscreen(!isMapFullscreen)}
         />
       </div>
 
       {/* BOTTOM COMPACT GLASS PANEL (Uber / Apple Maps style drawer) */}
-      <div className="absolute bottom-20 lg:bottom-4 left-3 right-3 sm:left-6 sm:right-6 max-w-lg mx-auto z-30 pointer-events-auto">
+      <div
+        className={`absolute ${
+          isMapFullscreen ? 'bottom-3 sm:bottom-4' : 'bottom-20 lg:bottom-4'
+        } left-3 right-3 sm:left-6 sm:right-6 max-w-lg mx-auto z-30 pointer-events-auto transition-all duration-300`}
+      >
         <div
           className={`
             relative overflow-hidden rounded-[24px] p-3.5 sm:p-5

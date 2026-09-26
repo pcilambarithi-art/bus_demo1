@@ -35,6 +35,7 @@ import {
   Locate,
   Navigation,
   Maximize2,
+  Minimize2,
   ZoomIn,
   ZoomOut,
   Layers,
@@ -54,6 +55,8 @@ interface InteractiveMapProps {
   onCardClick?: () => void;
   showPlacesSearch?: boolean;
   topOffset?: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 // OpenFreeMap vector styles (OpenStreetMap data, zero API keys, GPU accelerated)
@@ -110,6 +113,8 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   onCardClick,
   showPlacesSearch = true,
   topOffset = true,
+  isFullscreen = false,
+  onToggleFullscreen,
 }) => {
   const {
     selectedRoute,
@@ -295,6 +300,14 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       });
 
       mlMapInstanceRef.current = map;
+
+      // Allow free panning & movement without locking camera to bus
+      map.on('dragstart', () => {
+        setFollowingBus(false);
+      });
+      map.on('touchstart', () => {
+        setFollowingBus(false);
+      });
 
       map.on('load', async () => {
         if (isCancelled) return;
@@ -516,6 +529,14 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
     });
 
     mapInstanceRef.current = map;
+
+    // Allow free panning & movement without locking camera to bus
+    map.on('dragstart movestart', (e: any) => {
+      if (e.originalEvent) {
+        setFollowingBus(false);
+      }
+    });
+
     updateTileTheme(map, isDark);
     stopsLayerGroupRef.current = L.layerGroup().addTo(map);
 
@@ -696,8 +717,14 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
           styles: isDark ? GOOGLE_DARK_STYLES : GOOGLE_LIGHT_STYLES,
           disableDefaultUI: true,
           zoomControl: false,
+          gestureHandling: 'greedy', // Instant 1-finger fluid dragging on mobile
         });
         gMapInstanceRef.current = gMap;
+
+        // Allow free panning & movement without locking camera to bus
+        gMap.addListener('dragstart', () => {
+          setFollowingBus(false);
+        });
 
         const busMarker = new google.maps.Marker({
           position: { lat: telemetry.lat, lng: telemetry.lng },
@@ -1122,10 +1149,40 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
         </div>
       </div>
 
+      {/* Floating "Re-center on Bus" chip when user has freely moved/dragged the map */}
+      {!followingBus && (
+        <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto animate-[fadeIn_0.2s_ease-out]">
+          <button
+            onClick={handleRecenterBus}
+            className="px-4 py-2 rounded-full backdrop-blur-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-[0_4px_25px_rgba(6,182,212,0.5)] flex items-center gap-2 active:scale-95 transition-all cursor-pointer border border-white/40"
+            title="Snap camera back to tracking live bus"
+          >
+            <Navigation className="w-3.5 h-3.5 fill-current animate-pulse" />
+            <span>Re-center on Bus</span>
+          </button>
+        </div>
+      )}
+
       {/* Floating Map Navigation Controls (Top Right) */}
       {showControls && (
         <div className={`absolute ${topOffset ? 'top-16 sm:top-[70px]' : 'top-3 sm:top-4'} right-3 sm:right-4 z-20 flex flex-col gap-2 transition-all`}>
           
+          {/* Dedicated Full Screen Button (Mobile & Desktop) */}
+          {onToggleFullscreen && (
+            <button
+              onClick={onToggleFullscreen}
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen Map'}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-xl bg-slate-900/85 dark:bg-[#070B19]/85 text-white border border-cyan-400/50 hover:bg-cyan-500/20 active:scale-90 transition-all shadow-[0_4px_15px_rgba(6,182,212,0.3)] cursor-pointer"
+              aria-label="Toggle Full Screen Map"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4 text-cyan-400 stroke-[2.5]" />
+              ) : (
+                <Maximize2 className="w-4 h-4 text-cyan-400 stroke-[2.5]" />
+              )}
+            </button>
+          )}
+
           {/* Audio Mute/Unmute Toggle (Desktop only - mobile has central bottom nav toggle) */}
           <button
             onClick={toggleSound}
