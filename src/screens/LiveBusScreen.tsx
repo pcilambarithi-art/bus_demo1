@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Volume2,
   VolumeX,
+  User,
 } from 'lucide-react';
 
 export const LiveBusScreen: React.FC = () => {
@@ -275,25 +276,15 @@ export const LiveBusScreen: React.FC = () => {
               {/* Driver Contact & Amenities */}
               <div className="flex items-center justify-between p-2.5 rounded-2xl dark:bg-white/5 bg-slate-50 border dark:border-white/10 border-slate-200">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-cyan-400/40 shadow-sm shrink-0">
-                    {selectedBus.driverPhoto ? (
-                      <img
-                        src={selectedBus.driverPhoto}
-                        alt={selectedBus.driverName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm">
-                        {selectedBus.driverName.charAt(0)}
-                      </div>
-                    )}
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-sm">
+                    <User className="w-5 h-5" />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold dark:text-white text-slate-900">
                       {selectedBus.driverName}
                     </h4>
                     <span className="text-[10px] text-slate-400">
-                      Driver ★ {selectedBus.driverRating} • 8 yrs exp
+                      Assigned Driver • ★ {selectedBus.driverRating}
                     </span>
                   </div>
                 </div>

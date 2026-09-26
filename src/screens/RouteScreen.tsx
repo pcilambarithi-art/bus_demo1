@@ -10,6 +10,7 @@ import {
   Eye,
   Phone,
   Wind,
+  User,
 } from 'lucide-react';
 import { StreetViewModal } from '../components/StreetViewModal';
 import type { BusStop } from '../types/bus';
@@ -173,11 +174,9 @@ export const RouteScreen: React.FC = () => {
             {/* Driver & Telemetry Specs Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t dark:border-white/5 border-slate-200/60 text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <img
-                  src={selectedBus.driverPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
-                  alt={selectedBus.driverName}
-                  className="w-7 h-7 rounded-full object-cover border border-cyan-400/40 shrink-0"
-                />
+                <div className="w-7 h-7 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-sm">
+                  <User className="w-4 h-4" />
+                </div>
                 <div className="min-w-0 truncate">
                   <p className="text-[10px] text-slate-400 leading-tight">Driver</p>
                   <p className="text-xs font-bold dark:text-white text-slate-800 truncate">{selectedBus.driverName}</p>

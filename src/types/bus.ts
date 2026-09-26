@@ -30,7 +30,6 @@ export interface BusVehicle {
   driverName: string;
   driverPhone: string;
   driverRating: number;
-  driverPhoto?: string;
   busImage?: string;
   capacity: number;
   currentOccupancy: number;
