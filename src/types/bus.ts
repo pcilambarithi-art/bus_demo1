@@ -87,7 +87,7 @@ export interface StudentUser {
 
 export type VoiceSpeed = 0.9 | 0.95 | 1 | 1.5 | 2;
 
-export type VoiceAssistantId = 'leda' | 'puck' | 'charon' | 'aoede' | 'fenrir';
+export type VoiceAssistantId = 'leda' | 'puck' | 'charon' | 'aoede' | 'fenrir' | 'demodokos';
 
 export interface VoiceAssistantProfile {
   id: VoiceAssistantId;

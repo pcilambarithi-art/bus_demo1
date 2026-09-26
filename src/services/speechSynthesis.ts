@@ -67,6 +67,16 @@ export const VOICE_PROFILES: Record<VoiceAssistantId, VoiceAssistantProfile> = {
     pitch: 0.95,
     sampleText: 'Navigation locked. I am Fenrir. Real-time GPS coordinates, speed, and ETA calculations are active.',
   },
+  demodokos: {
+    id: 'demodokos',
+    name: 'Demodokos (v4)',
+    tag: 'Trained Audio AI',
+    gender: 'Neutral',
+    description: 'Local cmp-nct Demodokos Foundry v4 8B audio model',
+    geminiVoice: 'Puck',
+    pitch: 1.0,
+    sampleText: 'Demodokos Foundry audio pipeline active. Local 8B audio model ready for DCE transit updates.',
+  },
 };
 
 const STORAGE_KEY_ENABLED = 'bus_tracker_voice_enabled';
@@ -230,6 +240,12 @@ class TransitVoiceSynthesizer {
         (v) => /alex|fred|google us english|en-us/i.test(v.name)
       );
       if (match) return match;
+    } else if (voiceId === 'demodokos') {
+      // Modern natural system voice fallback
+      const match = this.voices.find(
+        (v) => /natural|neural|online|google|enhanced/i.test(v.name) && v.lang.startsWith('en')
+      );
+      if (match) return match;
     }
 
     // Generic gender matching fallback
@@ -249,7 +265,7 @@ class TransitVoiceSynthesizer {
   }
 
   /**
-   * Speak using Gemini 2.0 Multimodal Audio or high-fidelity Web Speech fallback
+   * Speak using Gemini 2.0 Multimodal Audio, Demodokos Foundry local server, or high-fidelity Web Speech fallback
    */
   public async speak(
     text: string,
@@ -266,6 +282,16 @@ class TransitVoiceSynthesizer {
     const voiceId = overrideVoiceId || this.currentVoiceId;
     const speed = overrideSpeed || this.speed;
 
+    // 0. Try local or hosted cmp-nct Demodokos Foundry v4 server if selected
+    if (voiceId === 'demodokos') {
+      try {
+        const played = await this.speakWithDemodokos(cleanText, speed, options);
+        if (played) return;
+      } catch (err) {
+        console.warn('[Voice Assistant] Demodokos server unavailable, falling back to Gemini/Web Speech:', err);
+      }
+    }
+
     // 1. Try Gemini Multimodal Audio API if key is present
     if (API_KEY && !API_KEY.includes('YOUR_')) {
       try {
@@ -278,6 +304,68 @@ class TransitVoiceSynthesizer {
 
     // 2. High-Fidelity Web Speech API
     this.speakWithWebSpeech(cleanText, voiceId, speed, options);
+  }
+
+  /**
+   * Speak using local/remote cmp-nct Demodokos Foundry v4 Audio Server
+   */
+  private async speakWithDemodokos(
+    text: string,
+    speed: VoiceSpeed,
+    options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
+  ): Promise<boolean> {
+    try {
+      const serverUrl =
+        (typeof window !== 'undefined' && localStorage.getItem('demodokos_server_url')) ||
+        (import.meta as any).env?.VITE_DEMODOKOS_URL ||
+        'http://localhost:8000/api/tts';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const response = await fetch(serverUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          speed,
+          voice_model: 'cmp-nct/demodokos-foundry-music-v4',
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return false;
+
+      const blob = await response.blob();
+      if (!blob || blob.size === 0) return false;
+
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      this.currentAudio = audio;
+      audio.playbackRate = speed;
+
+      return new Promise<boolean>((resolve) => {
+        audio.onplay = () => {
+          options?.onStart?.();
+        };
+        audio.onended = () => {
+          options?.onEnd?.();
+          this.currentAudio = null;
+          URL.revokeObjectURL(audioUrl);
+          resolve(true);
+        };
+        audio.onerror = () => {
+          options?.onError?.();
+          this.currentAudio = null;
+          URL.revokeObjectURL(audioUrl);
+          resolve(false);
+        };
+        audio.play().catch(() => resolve(false));
+      });
+    } catch {
+      return false;
+    }
   }
 
   /**
