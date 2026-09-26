@@ -519,6 +519,9 @@ export const ProfileScreen: React.FC = () => {
       {showQrModal && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
           <div className="relative w-full max-w-sm rounded-3xl dark:bg-[#0B132B] bg-white p-6 text-center border dark:border-white/15 border-slate-200 shadow-2xl">
+            <div className="w-12 h-12 mx-auto mb-2 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-md bg-white">
+              <img src="./app-logo.jpg" alt="DCE Logo" className="w-full h-full object-cover" />
+            </div>
             <h3 className="font-extrabold text-base dark:text-white text-slate-900 mb-1">
               DCE Digital Transport Pass
             </h3>

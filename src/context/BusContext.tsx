@@ -452,7 +452,7 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
           new Notification(`${title} • ${activeBusNum}`, {
             body: message,
-            icon: './favicon.svg',
+            icon: './app-logo.jpg',
             tag: `${activeBusNum}-${tier}`,
           });
         } catch (_) {}

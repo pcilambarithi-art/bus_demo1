@@ -48,8 +48,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         {/* Pulsing ring */}
         <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-cyan-500/30 to-blue-600/30 blur-xl animate-pulse" />
 
-        <div className="relative w-24 h-24 rounded-3xl bg-slate-900/90 border border-cyan-400/40 shadow-[0_0_35px_rgba(6,182,212,0.4)] backdrop-blur-2xl flex items-center justify-center">
-          <span className="text-4xl animate-bounce">🚌</span>
+        <div className="relative w-24 h-24 rounded-3xl overflow-hidden bg-slate-900/90 border border-cyan-400/40 shadow-[0_0_35px_rgba(6,182,212,0.4)] backdrop-blur-2xl flex items-center justify-center p-1">
+          <img
+            src="./app-logo.jpg"
+            alt="DCE College Bus Logo"
+            className="w-full h-full object-cover rounded-2xl"
+          />
           {/* Live indicator dot */}
           <span className="absolute top-2 right-2 w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#10B981] animate-ping" />
         </div>

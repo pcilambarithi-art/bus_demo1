@@ -76,8 +76,12 @@ export const LoginScreen: React.FC = () => {
       {/* Top Header Bar */}
       <header className="relative z-10 w-full px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between border-b dark:border-white/10 border-slate-200/80 dark:bg-transparent bg-white/50 backdrop-blur-md">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]">
-            <span className="text-xl">🚌</span>
+          <div className="w-10 h-10 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.4)] shrink-0 bg-white">
+            <img
+              src="./app-logo.jpg"
+              alt="DCE Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <span className="font-extrabold text-base sm:text-lg tracking-tight dark:text-white text-slate-900 block leading-tight">

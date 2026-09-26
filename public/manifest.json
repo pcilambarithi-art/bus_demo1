@@ -9,10 +9,16 @@
   "orientation": "portrait",
   "icons": [
     {
+      "src": "./app-logo.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
       "src": "./favicon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

@@ -38,8 +38,12 @@ export const Navbar: React.FC = () => {
         {/* Brand & Live Connection Pill */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0">
-              <span className="text-base sm:text-lg">🚌</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl overflow-hidden border border-cyan-400/40 shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0 bg-white">
+              <img
+                src="./app-logo.jpg"
+                alt="DCE College Bus Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <span className="font-extrabold text-xs sm:text-base tracking-tight dark:text-white text-slate-900 block leading-tight">
