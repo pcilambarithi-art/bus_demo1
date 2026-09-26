@@ -60,6 +60,30 @@ interface InteractiveMapProps {
 const OPENFREEMAP_DARK = 'https://tiles.openfreemap.org/styles/dark';
 const OPENFREEMAP_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
 
+// In-memory cache for sanitized OpenFreeMap styles (filters out US highway shield layers that trigger worker warnings)
+const sanitizedStyleCache = new Map<string, any>();
+
+async function getSanitizedOpenFreeMapStyle(url: string): Promise<any> {
+  if (sanitizedStyleCache.has(url)) {
+    return sanitizedStyleCache.get(url);
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const style = await res.json();
+    if (style && Array.isArray(style.layers)) {
+      style.layers = style.layers.filter((layer: any) => {
+        const id = (layer && layer.id) || '';
+        return !id.includes('shield');
+      });
+    }
+    sanitizedStyleCache.set(url, style);
+    return style;
+  } catch {
+    return url;
+  }
+}
+
 // Google Maps luxury styling
 const GOOGLE_DARK_STYLES = [
   { elementType: 'geometry', stylers: [{ color: '#070B19' }] },
@@ -255,128 +279,138 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     if (!maplibreContainerRef.current || mlMapInstanceRef.current) return;
 
+    let isCancelled = false;
     const styleUrl = isDark ? OPENFREEMAP_DARK : OPENFREEMAP_LIBERTY;
 
-    const map = new maplibregl.Map({
-      container: maplibreContainerRef.current,
-      style: styleUrl,
-      center: [telemetry.lng, telemetry.lat],
-      zoom: 13.5,
-      pitch: 25, // Subtle 3D perspective
-      attributionControl: false,
-    });
+    getSanitizedOpenFreeMapStyle(styleUrl).then((sanitizedStyle) => {
+      if (isCancelled || !maplibreContainerRef.current || mlMapInstanceRef.current) return;
 
-    mlMapInstanceRef.current = map;
+      const map = new maplibregl.Map({
+        container: maplibreContainerRef.current,
+        style: sanitizedStyle,
+        center: [telemetry.lng, telemetry.lat],
+        zoom: 13.5,
+        pitch: 25, // Subtle 3D perspective
+        attributionControl: false,
+      });
 
-    map.on('load', async () => {
-      // Create Custom Bus Marker Element
-      const busEl = document.createElement('div');
-      busEl.className = 'bus-pin relative flex flex-col items-center select-none pointer-events-auto cursor-pointer';
-      busEl.innerHTML = `
-        <div class="absolute -top-1 w-12 h-12 bg-cyan-400/20 rounded-full animate-ping pointer-events-none"></div>
-        <div class="relative z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-[#0B132B]/95 dark:bg-[#070B19]/95 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.5)] backdrop-blur-md">
-          <span class="text-base leading-none">🚌</span>
-          <div class="flex flex-col items-start leading-none">
-            <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
-            <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
+      mlMapInstanceRef.current = map;
+
+      map.on('load', async () => {
+        if (isCancelled) return;
+
+        // Create Custom Bus Marker Element
+        const busEl = document.createElement('div');
+        busEl.className = 'bus-pin relative flex flex-col items-center select-none pointer-events-auto cursor-pointer';
+        busEl.innerHTML = `
+          <div class="absolute -top-1 w-12 h-12 bg-cyan-400/20 rounded-full animate-ping pointer-events-none"></div>
+          <div class="relative z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-[#0B132B]/95 dark:bg-[#070B19]/95 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.5)] backdrop-blur-md">
+            <span class="text-base leading-none">🚌</span>
+            <div class="flex flex-col items-start leading-none">
+              <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
+              <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
+            </div>
+            <div id="ml-bearing-arrow" class="w-3 h-3 text-cyan-400 transform" style="transform: rotate(${telemetry.bearing}deg)">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+            </div>
           </div>
-          <div id="ml-bearing-arrow" class="w-3 h-3 text-cyan-400 transform" style="transform: rotate(${telemetry.bearing}deg)">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+          <div class="w-2.5 h-2.5 bg-[#0B132B] dark:bg-[#070B19] border-r border-b border-cyan-400/50 transform rotate-45 -mt-1 shadow-sm"></div>
+        `;
+        mlBearingArrowRef.current = busEl.querySelector('#ml-bearing-arrow');
+
+        const busMarker = new maplibregl.Marker({ element: busEl, anchor: 'bottom' })
+          .setLngLat([telemetry.lng, telemetry.lat])
+          .addTo(map);
+        mlBusMarkerRef.current = busMarker;
+
+        // Create Custom Student Location Marker Element
+        const studentEl = document.createElement('div');
+        studentEl.className = 'student-pin relative flex flex-col items-center pointer-events-auto';
+        studentEl.innerHTML = `
+          <div class="absolute -top-1 w-10 h-10 bg-blue-500/30 rounded-full animate-ping"></div>
+          <div class="relative z-10 px-2.5 py-1 rounded-xl bg-blue-600/90 text-white border border-white/40 shadow-lg text-[10px] font-black tracking-wider flex items-center gap-1">
+            <span>📍 YOU</span>
           </div>
-        </div>
-        <div class="w-2.5 h-2.5 bg-[#0B132B] dark:bg-[#070B19] border-r border-b border-cyan-400/50 transform rotate-45 -mt-1 shadow-sm"></div>
-      `;
-      mlBearingArrowRef.current = busEl.querySelector('#ml-bearing-arrow');
+          <div class="w-2 h-2 bg-blue-600 border-r border-b border-white/40 transform rotate-45 -mt-1"></div>
+        `;
 
-      const busMarker = new maplibregl.Marker({ element: busEl, anchor: 'bottom' })
-        .setLngLat([telemetry.lng, telemetry.lat])
-        .addTo(map);
-      mlBusMarkerRef.current = busMarker;
+        const studentMarker = new maplibregl.Marker({ element: studentEl, anchor: 'bottom' })
+          .setLngLat([student.lng, student.lat])
+          .addTo(map);
+        mlStudentMarkerRef.current = studentMarker;
 
-      // Create Custom Student Location Marker Element
-      const studentEl = document.createElement('div');
-      studentEl.className = 'student-pin relative flex flex-col items-center pointer-events-auto';
-      studentEl.innerHTML = `
-        <div class="absolute -top-1 w-10 h-10 bg-blue-500/30 rounded-full animate-ping"></div>
-        <div class="relative z-10 px-2.5 py-1 rounded-xl bg-blue-600/90 text-white border border-white/40 shadow-lg text-[10px] font-black tracking-wider flex items-center gap-1">
-          <span>📍 YOU</span>
-        </div>
-        <div class="w-2 h-2 bg-blue-600 border-r border-b border-white/40 transform rotate-45 -mt-1"></div>
-      `;
+        // Load OSRM Route Geometry (or waypoints fallback)
+        const waypointsLngLat = selectedRoute.waypoints.map(([lat, lng]) => [lng, lat]);
+        let routeCoordinates = waypointsLngLat;
 
-      const studentMarker = new maplibregl.Marker({ element: studentEl, anchor: 'bottom' })
-        .setLngLat([student.lng, student.lat])
-        .addTo(map);
-      mlStudentMarkerRef.current = studentMarker;
-
-      // Load OSRM Route Geometry (or waypoints fallback)
-      const waypointsLngLat = selectedRoute.waypoints.map(([lat, lng]) => [lng, lat]);
-      let routeCoordinates = waypointsLngLat;
-
-      // Attempt OSRM multi-stop road network calculation
-      try {
-        const osrm = await getOsrmRoute(
-          selectedRoute.stops[0].lat,
-          selectedRoute.stops[0].lng,
-          selectedRoute.stops[selectedRoute.stops.length - 1].lat,
-          selectedRoute.stops[selectedRoute.stops.length - 1].lng
-        );
-        if (osrm && osrm.geoJsonCoordinates.length > 0) {
-          routeCoordinates = osrm.geoJsonCoordinates;
+        // Attempt OSRM multi-stop road network calculation
+        try {
+          const osrm = await getOsrmRoute(
+            selectedRoute.stops[0].lat,
+            selectedRoute.stops[0].lng,
+            selectedRoute.stops[selectedRoute.stops.length - 1].lat,
+            selectedRoute.stops[selectedRoute.stops.length - 1].lng
+          );
+          if (osrm && osrm.geoJsonCoordinates.length > 0) {
+            routeCoordinates = osrm.geoJsonCoordinates;
+          }
+        } catch {
+          // Fallback to waypoints
         }
-      } catch {
-        // Fallback to waypoints
-      }
 
-      // Add Route Polyline Source & Layers
-      if (!map.getSource('dce-route')) {
-        map.addSource('dce-route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: routeCoordinates,
+        // Add Route Polyline Source & Layers
+        if (!map.getSource('dce-route')) {
+          map.addSource('dce-route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: routeCoordinates,
+              },
             },
-          },
-        });
+          });
 
-        // Glow layer
-        map.addLayer({
-          id: 'dce-route-glow',
-          type: 'line',
-          source: 'dce-route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#00F0FF',
-            'line-width': 8,
-            'line-opacity': 0.35,
-            'line-blur': 3,
-          },
-        });
+          // Glow layer
+          map.addLayer({
+            id: 'dce-route-glow',
+            type: 'line',
+            source: 'dce-route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#00F0FF',
+              'line-width': 8,
+              'line-opacity': 0.35,
+              'line-blur': 3,
+            },
+          });
 
-        // Crisp inner line
-        map.addLayer({
-          id: 'dce-route-line',
-          type: 'line',
-          source: 'dce-route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#00F0FF',
-            'line-width': 3.5,
-            'line-opacity': 0.9,
-          },
-        });
-      }
+          // Crisp inner line
+          map.addLayer({
+            id: 'dce-route-line',
+            type: 'line',
+            source: 'dce-route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#00F0FF',
+              'line-width': 3.5,
+              'line-opacity': 0.9,
+            },
+          });
+        }
 
-      // Add Bus Stop Markers
-      renderMapLibreStops(map);
+        // Add Bus Stop Markers
+        renderMapLibreStops(map);
+      });
     });
 
     return () => {
-      map.remove();
-      mlMapInstanceRef.current = null;
+      isCancelled = true;
+      if (mlMapInstanceRef.current) {
+        mlMapInstanceRef.current.remove();
+        mlMapInstanceRef.current = null;
+      }
     };
   }, []);
 
@@ -384,7 +418,11 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     if (!mlMapInstanceRef.current) return;
     const styleUrl = isDark ? OPENFREEMAP_DARK : OPENFREEMAP_LIBERTY;
-    mlMapInstanceRef.current.setStyle(styleUrl);
+    getSanitizedOpenFreeMapStyle(styleUrl).then((sanitizedStyle) => {
+      if (mlMapInstanceRef.current) {
+        mlMapInstanceRef.current.setStyle(sanitizedStyle);
+      }
+    });
   }, [isDark]);
 
   // Render MapLibre Stops

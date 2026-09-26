@@ -42,8 +42,6 @@ if (isConfigured) {
   } catch (err) {
     console.warn('[Firebase RTDB] Initialization warning:', err);
   }
-} else {
-  console.info('[Firebase RTDB] No custom Firebase credentials configured in .env. Using local cross-tab sync channel.');
 }
 
 export { db };

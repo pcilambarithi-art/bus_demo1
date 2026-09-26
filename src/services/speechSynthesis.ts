@@ -86,6 +86,7 @@ const STORAGE_KEY_SPEED = 'bus_tracker_voice_speed';
 class TransitVoiceSynthesizer {
   private enabled: boolean = true;
   private currentVoiceId: VoiceAssistantId = 'leda';
+  private demodokosOffline: boolean = false;
   public speed: VoiceSpeed = 0.95;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudio: HTMLAudioElement | null = null;
@@ -98,7 +99,15 @@ class TransitVoiceSynthesizer {
 
       const savedVoice = localStorage.getItem(STORAGE_KEY_VOICE) as VoiceAssistantId;
       if (savedVoice && VOICE_PROFILES[savedVoice]) {
-        this.currentVoiceId = savedVoice;
+        const hasCustomDemodokos = Boolean(
+          localStorage.getItem('demodokos_server_url') ||
+          (import.meta as any).env?.VITE_DEMODOKOS_URL
+        );
+        if (savedVoice === 'demodokos' && !hasCustomDemodokos) {
+          this.currentVoiceId = 'leda';
+        } else {
+          this.currentVoiceId = savedVoice;
+        }
       }
 
       const savedSpeed = parseFloat(localStorage.getItem(STORAGE_KEY_SPEED) || '');
@@ -283,12 +292,12 @@ class TransitVoiceSynthesizer {
     const speed = overrideSpeed || this.speed;
 
     // 0. Try local or hosted cmp-nct Demodokos Foundry v4 server if selected
-    if (voiceId === 'demodokos') {
+    if (voiceId === 'demodokos' && !this.demodokosOffline) {
       try {
         const played = await this.speakWithDemodokos(cleanText, speed, options);
         if (played) return;
-      } catch (err) {
-        console.warn('[Voice Assistant] Demodokos server unavailable, falling back to Gemini/Web Speech:', err);
+      } catch {
+        this.demodokosOffline = true;
       }
     }
 
@@ -314,16 +323,23 @@ class TransitVoiceSynthesizer {
     speed: VoiceSpeed,
     options?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
   ): Promise<boolean> {
+    if (this.demodokosOffline) return false;
+
+    const customUrl =
+      (typeof window !== 'undefined' && localStorage.getItem('demodokos_server_url')) ||
+      (import.meta as any).env?.VITE_DEMODOKOS_URL;
+
+    // If no custom server is specified, avoid calling localhost:8000 to prevent red net::ERR_CONNECTION_REFUSED
+    if (!customUrl) {
+      this.demodokosOffline = true;
+      return false;
+    }
+
     try {
-      const serverUrl =
-        (typeof window !== 'undefined' && localStorage.getItem('demodokos_server_url')) ||
-        (import.meta as any).env?.VITE_DEMODOKOS_URL ||
-        'http://localhost:8000/api/tts';
-
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const response = await fetch(serverUrl, {
+      const response = await fetch(customUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -335,10 +351,16 @@ class TransitVoiceSynthesizer {
       });
       clearTimeout(timeoutId);
 
-      if (!response.ok) return false;
+      if (!response.ok) {
+        this.demodokosOffline = true;
+        return false;
+      }
 
       const blob = await response.blob();
-      if (!blob || blob.size === 0) return false;
+      if (!blob || blob.size === 0) {
+        this.demodokosOffline = true;
+        return false;
+      }
 
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
@@ -359,11 +381,16 @@ class TransitVoiceSynthesizer {
           options?.onError?.();
           this.currentAudio = null;
           URL.revokeObjectURL(audioUrl);
+          this.demodokosOffline = true;
           resolve(false);
         };
-        audio.play().catch(() => resolve(false));
+        audio.play().catch(() => {
+          this.demodokosOffline = true;
+          resolve(false);
+        });
       });
     } catch {
+      this.demodokosOffline = true;
       return false;
     }
   }
