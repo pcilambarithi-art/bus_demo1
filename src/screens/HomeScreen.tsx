@@ -201,8 +201,8 @@ export const HomeScreen: React.FC = () => {
             {/* Speed */}
             <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl dark:bg-white/5 bg-slate-50/70 border dark:border-white/5 border-slate-200/50 flex flex-col justify-between">
               <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1 mb-0.5">
-                <Gauge className="w-3 h-3 text-cyan-400 shrink-0" />
-                <span className="truncate">Speed</span>
+                <Gauge className="w-3 h-3 text-cyan-400 shrink-0 animate-pulse" />
+                <span className="truncate">Live Speed</span>
               </span>
               <div className="flex items-baseline gap-1">
                 <span className="text-base sm:text-xl font-bold font-mono dark:text-white text-slate-900">
@@ -268,8 +268,9 @@ export const HomeScreen: React.FC = () => {
               </div>
 
               <div className="absolute top-2 right-2 flex items-center gap-1">
-                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 backdrop-blur-md text-[9px] sm:text-[10px] font-bold">
-                  {selectedBus.hasAC ? '❄️ AC Coach' : 'Standard Coach'}
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 backdrop-blur-md text-[9px] sm:text-[10px] font-mono font-bold flex items-center gap-1">
+                  <Gauge className="w-3 h-3 text-cyan-400 animate-pulse" />
+                  <span>{telemetry.speedKmh} km/h</span>
                 </span>
               </div>
 
@@ -285,7 +286,7 @@ export const HomeScreen: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-[9px] sm:text-[10px] text-slate-300 truncate mt-0.5 drop-shadow">
-                    Driver: <strong>{selectedBus.driverName}</strong> (★ {selectedBus.driverRating})
+                    Driver: <strong>{selectedBus.driverName}</strong>
                   </p>
                 </div>
 

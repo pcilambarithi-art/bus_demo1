@@ -8,8 +8,6 @@ import {
   ChevronUp,
   ChevronDown,
   Phone,
-  ShieldCheck,
-  Wind,
   Video,
   Clock,
   Gauge,
@@ -220,9 +218,9 @@ export const LiveBusScreen: React.FC = () => {
           <div className="grid grid-cols-3 gap-2 py-2 border-t dark:border-white/10 border-slate-200/80">
             {/* Speed */}
             <div className="p-2 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
-              <span className="text-[9px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-0.5">
-                <Gauge className="w-3 h-3 text-cyan-400" />
-                Speed
+              <span className="text-[9px] uppercase font-black tracking-wider text-cyan-500 dark:text-cyan-400 flex items-center gap-1 mb-0.5">
+                <Gauge className="w-3 h-3 text-cyan-400 animate-pulse" />
+                Live Speed
               </span>
               <span className="text-sm sm:text-xl font-bold font-mono dark:text-white text-slate-900">
                 {telemetry.speedKmh} <small className="text-[9px] font-normal text-slate-400">km/h</small>
@@ -284,7 +282,7 @@ export const LiveBusScreen: React.FC = () => {
                       {selectedBus.driverName}
                     </h4>
                     <span className="text-[10px] text-slate-400">
-                      Assigned Driver • ★ {selectedBus.driverRating}
+                      Assigned Campus Driver
                     </span>
                   </div>
                 </div>
@@ -298,24 +296,27 @@ export const LiveBusScreen: React.FC = () => {
                 </a>
               </div>
 
-              {/* Vehicle Specifications */}
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="p-2 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
-                  <Wind className="w-3.5 h-3.5 text-cyan-400 mx-auto mb-0.5" />
-                  <span className="text-[9px] text-slate-400 block">Climate</span>
-                  <span className="font-bold text-[10px] sm:text-xs dark:text-white text-slate-800">
-                    {selectedBus.hasAC ? 'AC Active' : 'Non-AC'}
+              {/* Real-Time Telemetry & Safety Badges */}
+              <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                <div className="p-2.5 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
+                  <div className="flex items-center justify-center gap-1 mb-0.5 text-cyan-400">
+                    <Gauge className="w-3.5 h-3.5 animate-pulse" />
+                    <span className="text-[10px] uppercase font-black tracking-wider">Live Speed</span>
+                  </div>
+                  <span className="font-mono font-black text-sm sm:text-base dark:text-white text-slate-800">
+                    {telemetry.speedKmh} <small className="text-[10px] font-normal text-slate-400 font-sans">km/h</small>
                   </span>
+                  <span className="text-[9px] text-emerald-500 dark:text-emerald-400 block font-semibold mt-0.5">● GPS Telemetry</span>
                 </div>
-                <div className="p-2 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
-                  <Video className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
-                  <span className="text-[9px] text-slate-400 block">Safety</span>
-                  <span className="font-bold text-[10px] sm:text-xs dark:text-white text-slate-800">CCTV Live</span>
-                </div>
-                <div className="p-2 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400 mx-auto mb-0.5" />
-                  <span className="text-[9px] text-slate-400 block">Limiter</span>
-                  <span className="font-bold text-[10px] sm:text-xs dark:text-white text-slate-800">Max 50 km/h</span>
+                <div className="p-2.5 rounded-xl dark:bg-white/5 bg-slate-50 border dark:border-white/5 border-slate-200">
+                  <div className="flex items-center justify-center gap-1 mb-0.5 text-emerald-400">
+                    <Video className="w-3.5 h-3.5" />
+                    <span className="text-[10px] uppercase font-black tracking-wider">Safety</span>
+                  </div>
+                  <span className="font-bold text-sm sm:text-base dark:text-white text-slate-800">
+                    CCTV Live
+                  </span>
+                  <span className="text-[9px] text-slate-400 block font-medium mt-0.5">Campus Monitored</span>
                 </div>
               </div>
 

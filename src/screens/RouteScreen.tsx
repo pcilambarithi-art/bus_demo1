@@ -9,7 +9,6 @@ import {
   Navigation,
   Eye,
   Phone,
-  Wind,
   User,
 } from 'lucide-react';
 import { StreetViewModal } from '../components/StreetViewModal';
@@ -153,11 +152,10 @@ export const RouteScreen: React.FC = () => {
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
                     {selectedBus.plateNumber}
                   </span>
-                  {selectedBus.hasAC && (
-                    <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-blue-500/15 text-blue-400 flex items-center gap-0.5 border border-blue-400/20">
-                      <Wind className="w-2.5 h-2.5" /> AC
-                    </span>
-                  )}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-400/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span>{telemetry.speedKmh} km/h</span>
+                  </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5 truncate">
                   Assigned vehicle for {selectedRoute.name}
