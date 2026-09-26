@@ -1,6 +1,17 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
+import { setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+
+// Configure MapLibre GL worker bundle for production and GitHub Pages deployment
+if (typeof window !== 'undefined' && typeof setWorkerUrl === 'function') {
+  try {
+    setWorkerUrl(maplibreWorkerUrl);
+  } catch (err) {
+    console.warn('[MapLibre] Failed to set worker URL:', err);
+  }
+}
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useBus } from '../context/BusContext';

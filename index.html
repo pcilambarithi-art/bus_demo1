@@ -2,7 +2,7 @@
 <html lang="en" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>DCE Bus Tracker — Dhanalakshmi College of Engineering, Chennai</title>
     <meta name="description" content="Official Real-Time GPS College Bus Tracking System for Dhanalakshmi College of Engineering (DCE), Chennai, Tamil Nadu with live telemetry, map navigation, and proximity alerts." />
@@ -10,7 +10,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
 
     <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +34,16 @@
           window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
         }
       });
+    </script>
+    <!-- GitHub Pages SPA redirect handler -->
+    <script>
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
     </script>
     <!-- Instant theme detector before DOM paint (prevents flicker) -->
     <script>
