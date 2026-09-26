@@ -32,29 +32,29 @@ export const Navbar: React.FC = () => {
   } = useBus();
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-xl -webkit-backdrop-blur-xl border-b dark:bg-[#070B19]/70 bg-white/70 dark:border-white/10 border-slate-200/80 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-xl -webkit-backdrop-blur-xl border-b dark:bg-[#070B19]/80 bg-white/80 dark:border-white/10 border-slate-200/80 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 h-14 sm:h-18 flex items-center justify-between gap-1 sm:gap-4 overflow-hidden">
         
         {/* Brand & Live Connection Pill */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]">
-              <span className="text-lg">🚌</span>
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0">
+              <span className="text-base sm:text-lg">🚌</span>
             </div>
             <div>
-              <span className="font-extrabold text-sm sm:text-base tracking-tight dark:text-white text-slate-900 block leading-tight">
+              <span className="font-extrabold text-xs sm:text-base tracking-tight dark:text-white text-slate-900 block leading-tight">
                 DCE<span className="text-cyan-500 dark:text-cyan-400"> BUS</span>
               </span>
-              <span className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wider uppercase leading-tight">
+              <span className="hidden md:block text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wider uppercase leading-tight">
                 Dhanalakshmi College of Engg, Chennai
               </span>
             </div>
           </div>
 
-          {/* Connection Status Pill (Section 20) */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md dark:bg-white/5 bg-slate-100 dark:border dark:border-white/10 border border-slate-200">
+          {/* Connection Status Pill */}
+          <div className="flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-md dark:bg-white/5 bg-slate-100 dark:border dark:border-white/10 border border-slate-200 shrink-0">
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
                 connectionStatus === 'live'
                   ? 'bg-emerald-400 shadow-[0_0_8px_#10B981] animate-pulse'
                   : connectionStatus === 'reconnecting'
@@ -62,19 +62,19 @@ export const Navbar: React.FC = () => {
                   : 'bg-rose-500'
               }`}
             />
-            <span className="text-[11px] dark:text-slate-300 text-slate-700 font-bold sm:font-normal">
+            <span className="text-[10px] sm:text-[11px] dark:text-slate-300 text-slate-700 font-bold sm:font-normal">
               {connectionStatus === 'live'
                 ? 'Live'
                 : connectionStatus === 'reconnecting'
-                ? 'Reconnecting...'
+                ? 'Wait'
                 : 'Offline'}
             </span>
           </div>
 
-          {/* GPS Status Pill (Clickable to trigger location permission) */}
+          {/* GPS Status Pill */}
           <button
             onClick={() => setIsLocationModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md border transition-all active:scale-95 cursor-pointer ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-md border transition-all active:scale-95 cursor-pointer shrink-0 ${
               gpsStatus === 'active'
                 ? 'dark:bg-emerald-500/15 bg-emerald-50 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                 : gpsStatus === 'improving'
@@ -83,27 +83,27 @@ export const Navbar: React.FC = () => {
             }`}
             title="Click to request or view GPS location status"
           >
-            <MapPin className="w-3 h-3 text-current" />
-            <span className="text-[11px] font-bold">
+            <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-current" />
+            <span className="text-[10px] sm:text-[11px] font-bold">
               {gpsStatus === 'active'
-                ? 'GPS Active'
+                ? 'Active'
                 : gpsStatus === 'improving'
-                ? 'Locating...'
-                : 'Enable GPS'}
+                ? 'Locating'
+                : 'GPS'}
             </span>
           </button>
 
-          {/* Driver Phone Broadcasting Indicator */}
+          {/* Driver Phone Broadcasting Indicator (Tablet/Desktop) */}
           {isDriverBroadcasting && (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
               <Radio className="w-3 h-3 text-amber-400" />
-              <span className="text-[10px]">Driver GPS Live</span>
+              <span className="text-[10px]">Driver Live</span>
             </div>
           )}
         </div>
 
         {/* Action Controls & Toggles */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Driver Mode Button (Desktop) */}
           <button
             onClick={() => setMode('driver')}
@@ -117,7 +117,7 @@ export const Navbar: React.FC = () => {
           {/* Ask Transit AI Copilot Button */}
           <button
             onClick={() => setIsAiModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md dark:bg-cyan-500/15 bg-cyan-50 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25 active:scale-95 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+            className="flex items-center justify-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-semibold backdrop-blur-md dark:bg-cyan-500/15 bg-cyan-50 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25 active:scale-95 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)] shrink-0"
             title="Ask Campus Transit AI Copilot (Powered by Gemini API)"
           >
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
@@ -131,23 +131,23 @@ export const Navbar: React.FC = () => {
             title="Download Android APK & PWA instructions"
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>APK & App</span>
+            <span>APK</span>
           </button>
 
           {/* SOS Helpline Emergency Button */}
           <button
             onClick={() => setIsSosModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-500/25 active:scale-95 transition-all shadow-sm"
+            className="flex items-center justify-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-[10px] sm:text-xs font-bold backdrop-blur-md bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-500/25 active:scale-95 transition-all shadow-sm shrink-0"
             title="Emergency College Security & Transport Desk"
           >
-            <AlertTriangle className="w-3.5 h-3.5" />
+            <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>SOS</span>
           </button>
 
-          {/* Sound Mute/Unmute Toggle (Desktop & Mobile) */}
+          {/* Sound Mute/Unmute Toggle (Desktop only - mobile has prominent bottom bar toggle) */}
           <button
             onClick={toggleSound}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all active:scale-95 shadow-sm border ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all active:scale-95 shadow-sm border ${
               isSoundMuted
                 ? 'bg-rose-500/15 text-rose-400 border-rose-500/35 hover:bg-rose-500/25 shadow-[0_0_12px_rgba(244,63,94,0.25)]'
                 : 'bg-cyan-500/15 text-cyan-400 border-cyan-400/40 hover:bg-cyan-500/25 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
@@ -163,7 +163,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 animate-pulse" />
-                <span className="text-[10px] sm:text-xs font-bold">Sound On</span>
+                <span className="text-[10px] sm:text-xs font-bold">Sound</span>
               </>
             )}
           </button>
@@ -171,37 +171,37 @@ export const Navbar: React.FC = () => {
           {/* Theme Toggle (Mobile & Desktop) */}
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="flex w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl items-center justify-center backdrop-blur-md dark:bg-white/5 bg-slate-100 text-slate-700 dark:text-slate-300 border dark:border-white/10 border-slate-200 hover:bg-slate-200/60 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer"
+            className="flex w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl items-center justify-center backdrop-blur-md dark:bg-white/5 bg-slate-100 text-slate-700 dark:text-slate-300 border dark:border-white/10 border-slate-200 hover:bg-slate-200/60 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer shrink-0"
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
             {isDark ? (
-              <Sun className="w-4 h-4 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
             ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
+              <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600" />
             )}
           </button>
 
           {/* User Profile Badge & Logout */}
           {student && (
-            <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l dark:border-white/10 border-slate-200">
+            <div className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-2 border-l dark:border-white/10 border-slate-200 shrink-0">
               <div
-                className="flex items-center gap-1.5 max-w-[110px] sm:max-w-[150px] truncate"
+                className="flex items-center gap-1 sm:gap-1.5 max-w-[80px] sm:max-w-[150px] truncate"
                 title={`${student.name} (${student.rollNo || student.email || 'Student'})`}
               >
                 {student.avatarUrl ? (
                   <img
                     src={student.avatarUrl}
                     alt={student.name}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-cyan-400/50 object-cover shadow-sm flex-shrink-0"
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-cyan-400/50 object-cover shadow-sm shrink-0"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-bold text-[10px] sm:text-xs flex items-center justify-center shrink-0 shadow-sm">
                     {student.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="hidden md:flex flex-col text-left leading-none">
+                <div className="hidden lg:flex flex-col text-left leading-none">
                   <span className="text-xs font-semibold dark:text-white text-slate-900 truncate">
                     {student.name.split(' ')[0]}
                   </span>
@@ -213,11 +213,11 @@ export const Navbar: React.FC = () => {
 
               <button
                 onClick={logout}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 transition-all active:scale-95 shadow-sm"
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 transition-all active:scale-95 shadow-sm shrink-0"
                 title="Sign Out / Change User"
                 aria-label="Sign Out"
               >
-                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
           )}

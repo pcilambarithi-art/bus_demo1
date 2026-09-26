@@ -1020,11 +1020,11 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       {showControls && (
         <div className={`absolute ${topOffset ? 'top-16 sm:top-[70px]' : 'top-3 sm:top-4'} right-3 sm:right-4 z-20 flex flex-col gap-2 transition-all`}>
           
-          {/* Audio Mute/Unmute Toggle (Desktop & Mobile) */}
+          {/* Audio Mute/Unmute Toggle (Desktop only - mobile has central bottom nav toggle) */}
           <button
             onClick={toggleSound}
             title={isSoundMuted ? 'Unmute Audio & Voice' : 'Mute Audio & Voice'}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-xl border active:scale-90 transition-all shadow-lg ${
+            className={`hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-2xl items-center justify-center backdrop-blur-xl border active:scale-90 transition-all shadow-lg ${
               isSoundMuted
                 ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 hover:bg-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
                 : 'bg-cyan-500/20 border-cyan-400/40 text-cyan-400 hover:bg-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.35)]'

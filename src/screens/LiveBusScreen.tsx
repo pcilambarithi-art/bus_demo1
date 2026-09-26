@@ -40,47 +40,47 @@ export const LiveBusScreen: React.FC = () => {
     <div className="relative w-full h-[calc(100vh-5rem)] lg:h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden pb-16 lg:pb-0 animate-[fadeIn_0.3s_ease-out]">
       
       {/* Top Floating Glass Header (Clean and responsive) */}
-      <div className="absolute top-2.5 sm:top-3 left-3 right-3 sm:left-4 sm:right-4 z-40 flex items-center justify-between pointer-events-none gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+      <div className="absolute top-2 sm:top-3 left-2 right-2 sm:left-4 sm:right-4 z-40 flex items-center justify-between pointer-events-none gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto shrink-0">
           {/* Back button */}
           <button
             onClick={() => setActiveTab('home')}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg active:scale-95 transition-all"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg active:scale-95 transition-all shrink-0"
             aria-label="Back to Home"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
 
           {/* Title Glass Capsule */}
-          <div className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg flex items-center gap-2">
-            <span className="font-extrabold text-xs sm:text-base tracking-tight font-sans">
-              Live Bus
+          <div className="px-2 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl backdrop-blur-2xl dark:bg-[#070B19]/80 bg-white/80 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg flex items-center gap-1.5 shrink-0">
+            <span className="font-extrabold text-[11px] sm:text-base tracking-tight font-sans">
+              Live
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-            <span className="text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
+            <span className="text-[11px] sm:text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
               {selectedBus.busNumber}
             </span>
           </div>
         </div>
 
-        {/* Action Controls: GPS Alert + Audio Mute + Bus Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+        {/* Action Controls: GPS Alert + Bus Switcher */}
+        <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto shrink-0">
           {/* Enable GPS Button (Shows if not granted) */}
           {locationPermissionState !== 'granted' && (
             <button
               onClick={() => setIsLocationModalOpen(true)}
-              className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl backdrop-blur-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 hover:bg-cyan-500/30 flex items-center gap-1.5 active:scale-95 transition-all text-xs font-bold shadow-lg animate-pulse"
+              className="px-2 sm:px-3 py-1 sm:py-2 rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 hover:bg-cyan-500/30 flex items-center gap-1 active:scale-95 transition-all text-[10px] sm:text-xs font-bold shadow-lg animate-pulse shrink-0"
               title="Allow GPS access to track bus relative to your position"
             >
-              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[10px] sm:text-xs">Enable GPS</span>
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" />
+              <span>GPS</span>
             </button>
           )}
 
-          {/* Prominent Audio Mute/Unmute Button (Desktop & Mobile) */}
+          {/* Audio Mute/Unmute Button (Desktop only - mobile has central bottom nav toggle) */}
           <button
             onClick={toggleSound}
-            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl backdrop-blur-2xl border shadow-lg flex items-center gap-1.5 active:scale-95 transition-all text-xs font-bold ${
+            className={`hidden sm:flex px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl backdrop-blur-2xl border shadow-lg items-center gap-1.5 active:scale-95 transition-all text-xs font-bold ${
               isSoundMuted
                 ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 hover:bg-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
                 : 'bg-cyan-500/20 text-cyan-400 border-cyan-400/40 hover:bg-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.35)]'
@@ -105,7 +105,7 @@ export const LiveBusScreen: React.FC = () => {
           <select
             value={selectedBus.id}
             onChange={(e) => selectBus(e.target.value)}
-            className="text-[11px] sm:text-xs font-bold py-1.5 sm:py-2 px-2 sm:px-3 rounded-2xl backdrop-blur-2xl dark:bg-[#070B19]/85 bg-white/90 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg outline-none cursor-pointer max-w-[125px] sm:max-w-none truncate"
+            className="text-[10px] sm:text-xs font-bold py-1 sm:py-2 px-1.5 sm:px-3 rounded-xl sm:rounded-2xl backdrop-blur-2xl dark:bg-[#070B19]/85 bg-white/90 dark:text-white text-slate-800 border dark:border-white/15 border-slate-200 shadow-lg outline-none cursor-pointer max-w-[105px] xs:max-w-[130px] sm:max-w-none truncate shrink-0"
           >
             {allBuses.map((b) => (
               <option key={b.id} value={b.id} className="dark:bg-[#070B19] bg-white text-slate-900 dark:text-white">
