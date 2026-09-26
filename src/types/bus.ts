@@ -63,7 +63,10 @@ export interface BusTelemetry {
 
 export interface ProximityAlert {
   id: string;
-  tier: '1km' | '500m' | '200m' | 'arrived';
+  tier: '1km' | '500m' | '200m' | 'arrived' | 'stop-approaching' | 'stop-arrived';
+  busNumber?: string;
+  stopName?: string;
+  distanceKm?: number;
   title: string;
   message: string;
   timestamp: string;

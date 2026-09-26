@@ -55,17 +55,43 @@ export interface DceTransitContext {
   status: string;
   lastUpdatedTimestamp: string;
   freshnessSeconds: number;
+  distanceToNextStop?: string;
+  studentName?: string;
+  routeStopsSummary?: string;
   allBusesSummary?: string;
+  activeAlertsSummary?: string;
 }
 
 /**
  * Checks whether user query is genuinely related to college transit/buses.
- * Strictest filtering requested: Only DCE bus transit, routes, stops, tracking allowed.
+ * Strictest filtering: Rejects any unwanted chats (coding, general knowledge, movies, etc.)
  */
 function isTransitRelated(query: string): boolean {
   const p = query.toLowerCase().trim();
 
-  // Explicit greeting or bus keywords
+  // Unwanted chat categories
+  const unwantedKeywords = [
+    'code', 'python', 'javascript', 'java', 'html', 'css', 'react', 'program', 'algorithm',
+    'recipe', 'cook', 'food', 'weather', 'rain', 'temperature', 'climate',
+    'movie', 'cinema', 'actor', 'actress', 'song', 'music', 'album', 'game',
+    'cricket', 'ipl', 'football', 'joke', 'story', 'poem', 'essay', 'homework',
+    'math', 'solve', 'physics', 'chemistry', 'biology', 'history', 'president',
+    'minister', 'politics', 'election', 'capital of', 'ai model', 'chatgpt',
+    'openai', 'who are you', 'how are you', 'what is your name', 'tell me about yourself',
+    'love', 'dating', 'finance', 'stock', 'crypto', 'bitcoin', 'general knowledge'
+  ];
+
+  const hasUnwanted = unwantedKeywords.some((kw) => p.includes(kw));
+  const hasExplicitBus =
+    p.includes('bus') || p.includes('route') || p.includes('stop') ||
+    p.includes('dce') || p.includes('tambaram') || p.includes('speed') ||
+    p.includes('driver') || p.includes('eta');
+
+  if (hasUnwanted && !hasExplicitBus) {
+    return false;
+  }
+
+  // Explicit greeting or transit keywords
   const transitKeywords = [
     'bus', 'route', 'stop', 'track', 'live', 'speed', 'eta', 'time', 'reach',
     'location', 'where', 'when', 'which', 'arrive', 'arrival', 'delay', 'driver',
@@ -75,21 +101,22 @@ function isTransitRelated(query: string): boolean {
     'enga', 'irukku', 'iruku', 'varum', 'varuma', 'vandhucha', 'vandhutha',
     'eppo', 'eppovarum', 'solunga', 'solu', 'list', 'fleet', 'cockpit', 'pass',
     '07', '04', '01', '12', 'plate', 'gps', 'radar', 'transit', 'vehicle', 'map',
-    'van', 'driver', 'pickup', 'drop', 'hi', 'hello', 'vanakkam', 'help'
+    'van', 'pickup', 'drop', 'near', 'distance', 'kilometer', 'km', 'hi', 'hello',
+    'vanakkam', 'help'
   ];
 
   return transitKeywords.some((kw) => p.includes(kw));
 }
 
 const NON_TRANSIT_REFUSAL_EN =
-  'This AI Assistant is exclusively for Dhanalakshmi College of Engineering (DCE) Bus Tracking, routes, stops, and live transit queries. Please ask questions about our college buses!';
+  'This chatbot is strictly for Dhanalakshmi College of Engineering (DCE) Bus Tracking only. Please ask about bus locations, routes, stops, ETA, speed, or campus fleet status.';
 
 const NON_TRANSIT_REFUSAL_TA =
-  'மன்னிக்கவும், இந்த AI Chat Dhanalakshmi College of Engineering (DCE) பேருந்து நேரலை கண்காணிப்பு (Bus Live Tracking), வழிகள் (Routes) மற்றும் நிறுத்தங்கள் (Stops) ஆகியவற்றிற்கு மட்டுமே செயல்படும். கல்லூரி பேருந்துகள் பற்றிய கேள்விகளை மட்டும் கேட்கவும்.';
+  'இந்த chatbot Dhanalakshmi College of Engineering (DCE) பேருந்து நேரலை கண்காணிப்பிற்கு மட்டுமே (Bus Tracking Only). தயவுசெய்து கல்லூரி பேருந்துகள் பற்றிய கேள்விகளை மட்டும் கேட்கவும்.';
 
 /**
  * Official DCE Real-Time Bus Tracking AI
- * Enforces strict domain limitation: Only DCE bus tracking and fleet information.
+ * Enforces strict domain limitation: Only DCE bus tracking and live telemetry.
  */
 export async function queryTransitAssistant(
   prompt: string,
@@ -126,39 +153,36 @@ export async function queryTransitAssistant(
     freshnessLabel = 'STALE';
   }
 
-  const dceSystemPrompt = `You are the official AI assistant for Dhanalakshmi College of Engineering (DCE), Chennai, Tamil Nadu real-time college bus tracking system.
-Your SOLE and EXCLUSIVE responsibility is to provide accurate information about DCE college buses using verified real-time telemetry.
+  const dceSystemPrompt = `You are the official Dhanalakshmi College of Engineering (DCE) Campus Bus Tracking AI Assistant.
+Your SOLE and EXCLUSIVE responsibility is to answer student and faculty questions regarding live bus tracking, fleet telemetry, routes, stops, speeds, and ETAs.
 
-CRITICAL DOMAIN ENFORCEMENT POLICY:
-You are STRICTLY a college bus transit tracking assistant. You MUST NOT answer general questions, trivia, coding/programming, homework, weather, jokes, movies, politics, personal questions, or any non-transit topic.
-If the user asks ANYTHING outside of DCE college buses, bus tracking, routes, stops, schedules, speeds, or campus transit:
-You MUST politely DECLINE to answer and strictly reply:
-"${NON_TRANSIT_REFUSAL_EN}" (or in Tamil/Tanglish: "${NON_TRANSIT_REFUSAL_TA}").
-
-Verified DCE Active Campus Fleet:
-- Institution: Dhanalakshmi College of Engineering (DCE), Manimangalam, Near Tambaram, Chennai, Tamil Nadu.
-- Active Express Routes:
-  1. DCE-BUS-07: Guindy / Tambaram -> DCE Express (Driver: M. Sundaram, Plate: TN-11-DCE-0007, Stops: Guindy, Pallavaram, Chromepet, Tambaram MEPZ, Tambaram West Stand, Mudichur Road, Varadharajapuram, DCE Campus)
-  2. DCE-BUS-04: Chromepet / Perungalathur -> DCE (Driver: K. Rajesh, Plate: TN-11-DCE-0004, Stops: Chromepet MIT Gate, Tambaram MEPZ, Tambaram West, Perungalathur Junction, Mudichur Koot Road, DCE Campus Gate)
-  3. DCE-BUS-01: Tambaram West -> DCE Campus (Driver: S. Murugan, Plate: TN-11-DCE-0001, Stops: Tambaram Sanatorium, Tambaram West Stand, Kishkinta Road, Mudichur Junction, Manimangalam Koot Road, DCE Engineering Block)
-  4. DCE-BUS-12: Koyambedu / Porur -> DCE Shuttle (Driver: P. Natarajan, Plate: TN-11-DCE-0012, Stops: Koyambedu CMBT, Porur Toll Gate, Kundrathur Koot Road, Somangalam, DCE Campus)
-
-Live Telemetry for Selected Bus:
-- Bus Number: ${context.busId}
-- Route: ${context.routeName}
-- GPS Coordinates: ${context.latitude.toFixed(4)}, ${context.longitude.toFixed(4)}
-- Speed: ${context.currentSpeed} km/h
+LIVE DATA EXTRACTED FROM ACTIVE WEB APPLICATION:
+- Currently Selected Bus: ${context.busId}
+- Route Name: ${context.routeName} (Code: ${context.routeId})
+- Current Bus Speed: ${context.currentSpeed} km/h
+- Current GPS Coordinates: ${context.latitude.toFixed(4)}, ${context.longitude.toFixed(4)}
 - Movement Status: ${context.status}
 - Telemetry Freshness: ${freshnessLabel} (Updated: ${context.lastUpdatedTimestamp})
-- Current Location: Near ${context.nextStopName}
+- Current Location: Near ${context.nextStopName}${context.distanceToNextStop ? ` (${context.distanceToNextStop} to next stop)` : ''}
 - Distance to Student Stop (${context.studentStopName}): ${context.distanceToStop}
 - Distance to DCE College Campus: ${context.distanceToCollegeKm.toFixed(1)} km
-- Live Calculated ETA: ~${context.etaMinutes <= 0 ? 'Arriving now' : `${context.etaMinutes} minutes`}
+- Calculated Live ETA: ~${context.etaMinutes <= 0 ? 'Arriving now' : `${context.etaMinutes} minutes`}
+${context.studentName ? `- Student Name: ${context.studentName}` : ''}
+${context.routeStopsSummary ? `- Route Stops in Sequence:\n  ${context.routeStopsSummary}` : ''}
+
+${context.allBusesSummary ? `ALL ACTIVE FLEET BUSES (LIVE WEB EXTRACTION):\n${context.allBusesSummary}` : ''}
+${context.activeAlertsSummary ? `ACTIVE TRANSIT NOTIFICATIONS:\n${context.activeAlertsSummary}` : ''}
+
+CRITICAL UNWANTED CHAT POLICY (HIGHEST PRIORITY):
+This chatbot is EXCLUSIVELY for bus tracking. If the user asks or chats about ANY unwanted topic (such as general knowledge, coding/programming, recipes, weather, movies, jokes, stories, homework, politics, non-transit chat, or anything unrelated to DCE buses):
+DO NOT ANSWER THE QUESTION.
+You MUST ONLY reply:
+"${NON_TRANSIT_REFUSAL_EN}" (or in Tamil/Tanglish: "${NON_TRANSIT_REFUSAL_TA}").
 
 Response Rules:
 1. Always calculate and tell the user the exact live status, speed, location, and ETA based on the live data above.
-2. If user asks for bus list / routes to track, list all 4 buses (DCE-BUS-07, 04, 01, 12).
-3. If user asks in Tanglish (e.g. "Bus enga irukku?", "Bus eppo varum?"), respond in natural Tanglish.
+2. If user asks for bus list / routes to track, list all 4 buses (DCE-BUS-07, 04, 01, 12) from the live fleet data.
+3. If user asks in Tanglish (e.g. "Bus enga irukku?", "Bus eppo varum?"), respond in friendly, natural Tanglish.
 4. If user asks in English, respond in professional, crisp English.
 5. Strictly refuse non-bus queries.`;
 

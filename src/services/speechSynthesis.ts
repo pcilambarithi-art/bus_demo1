@@ -547,6 +547,34 @@ class TransitVoiceSynthesizer {
     this.speak(message);
   }
 
+  public announceStopMilestone(
+    busNumber: string,
+    stopName: string,
+    distanceKm: number,
+    isStudentStop: boolean,
+    etaMinutes: number = 2,
+    isArrived: boolean = false
+  ) {
+    if (!this.enabled) return;
+
+    let message = '';
+    if (isArrived) {
+      if (isStudentStop) {
+        message = `Attention! Bus ${busNumber} has arrived at your location, ${stopName}. Please proceed to board the bus now.`;
+      } else {
+        message = `Bus ${busNumber} has reached ${stopName} Stop.`;
+      }
+    } else {
+      if (isStudentStop) {
+        message = `Attention! Bus ${busNumber} is near to you! Only ${distanceKm.toFixed(1)} kilometres to reach your location at ${stopName}. Estimated arrival in ${etaMinutes} minutes.`;
+      } else {
+        message = `Bus ${busNumber} is approaching ${stopName} Stop, ${distanceKm.toFixed(1)} kilometres away.`;
+      }
+    }
+
+    this.speak(message);
+  }
+
   public testVoice(voiceId?: VoiceAssistantId, speed?: VoiceSpeed) {
     const id = voiceId || this.currentVoiceId;
     const profile = VOICE_PROFILES[id] || VOICE_PROFILES.leda;

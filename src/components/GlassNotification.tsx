@@ -60,7 +60,7 @@ export const GlassNotification: React.FC = () => {
           <div className="flex-1 min-w-0 pr-6">
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                {selectedBus.busNumber} • {activeAlert.tier.toUpperCase()}
+                {activeAlert.busNumber || selectedBus.busNumber} • {activeAlert.tier.toUpperCase()}
               </span>
               <span className="text-[11px] text-slate-400 font-mono">
                 {activeAlert.timestamp}
@@ -78,10 +78,16 @@ export const GlassNotification: React.FC = () => {
             {/* Quick Live Distance & Stop Badge */}
             <div className="mt-3 flex items-center gap-3 pt-2 border-t border-slate-200/50 dark:border-white/10 text-xs text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1 font-mono font-semibold text-cyan-600 dark:text-cyan-400">
-                📍 {formatDistance(telemetry.distanceToStudentStopMeters)} away
+                📍 {activeAlert.distanceKm !== undefined ? `${activeAlert.distanceKm.toFixed(1)} km away` : `${formatDistance(telemetry.distanceToStudentStopMeters)} away`}
               </span>
               <span>•</span>
-              <span className="truncate">Your stop: <strong>{studentStop.shortName}</strong></span>
+              <span className="truncate">
+                {activeAlert.stopName ? (
+                  <>Stop: <strong>{activeAlert.stopName}</strong></>
+                ) : (
+                  <>Your stop: <strong>{studentStop.shortName}</strong></>
+                )}
+              </span>
             </div>
           </div>
 

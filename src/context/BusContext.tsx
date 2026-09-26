@@ -71,7 +71,14 @@ interface BusContextType {
   activeAlert: ProximityAlert | null;
   alertHistory: ProximityAlert[];
   dismissAlert: () => void;
-  triggerCustomAlert: (tier: ProximityAlert['tier'], title: string, message: string) => void;
+  triggerCustomAlert: (
+    tier: ProximityAlert['tier'],
+    title: string,
+    message: string,
+    busNumber?: string,
+    stopName?: string,
+    distanceKm?: number
+  ) => void;
 
   // Live Telemetry GPS mode & Permissions
   useRealGeolocation: boolean;
@@ -335,6 +342,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const selectBus = useCallback((busId: string) => {
     sound.playClick();
     setSelectedBusId(busId);
+    const idx = fleetProgressRef.current[busId] ?? 0;
+    setWaypointIndex(idx);
   }, []);
 
   const selectRoute = useCallback((routeId: string) => {
@@ -342,6 +351,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const busWithRoute = allBuses.find((b) => b.routeId === routeId);
     if (busWithRoute) {
       setSelectedBusId(busWithRoute.id);
+      const idx = fleetProgressRef.current[busWithRoute.id] ?? 0;
+      setWaypointIndex(idx);
     }
   }, [allBuses]);
 
@@ -354,19 +365,25 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('live');
   const locationWatcherCleanupRef = useRef<(() => void) | null>(null);
 
-  // Real-time Route Waypoint Tracking
-  const currentWaypointIndexRef = useRef<number>(20); // Start midway
-  const [waypointIndex, setWaypointIndex] = useState<number>(20);
+  // Fleet Route Waypoint Tracking (multi-bus simulation)
+  const fleetProgressRef = useRef<Record<string, number>>({
+    'bus-07': 22,
+    'bus-04': 14,
+    'bus-01': 8,
+    'bus-12': 18,
+  });
+  const [waypointIndex, setWaypointIndex] = useState<number>(() => fleetProgressRef.current['bus-07'] || 20);
 
   // Modals
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isApkModalOpen, setIsApkModalOpen] = useState(false);
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
 
-  // Proximity Alerts
+  // Proximity Alerts & Throttled Voice Engine
   const [activeAlert, setActiveAlert] = useState<ProximityAlert | null>(null);
   const [alertHistory, setAlertHistory] = useState<ProximityAlert[]>([]);
   const triggeredTiersRef = useRef<Set<string>>(new Set());
+  const lastVoiceTimeRef = useRef<number>(0);
 
   const dismissAlert = useCallback(() => {
     sound.playClick();
@@ -401,28 +418,85 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     gracefulVoice.testVoice(voiceId, speed);
   }, []);
 
-  const triggerCustomAlert = useCallback((tier: ProximityAlert['tier'], title: string, message: string) => {
-    const alert: ProximityAlert = {
-      id: `${tier}-${Date.now()}`,
-      tier,
-      title,
-      message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: false,
-    };
-    setActiveAlert(alert);
-    setAlertHistory((prev) => [alert, ...prev.slice(0, 9)]);
+  const triggerCustomAlert = useCallback(
+    (
+      tier: ProximityAlert['tier'],
+      title: string,
+      message: string,
+      busNumber?: string,
+      stopName?: string,
+      distanceKm?: number
+    ) => {
+      const activeBusNum = busNumber || selectedBus.busNumber;
+      const activeStopName = stopName || studentStop.shortName;
+      const alert: ProximityAlert = {
+        id: `${tier}-${activeBusNum}-${Date.now()}`,
+        tier,
+        busNumber: activeBusNum,
+        stopName: activeStopName,
+        distanceKm,
+        title,
+        message,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+      };
+      setActiveAlert(alert);
+      setAlertHistory((prev) => [alert, ...prev.slice(0, 19)]);
 
-    if (tier === '1km' || tier === '500m' || tier === '200m') {
-      sound.playApproachingChime();
-      sound.triggerHaptic(20);
-      gracefulVoice.announceBusMilestone(tier, selectedBus.busNumber, studentStop.shortName);
-    } else if (tier === 'arrived') {
-      sound.playArrivalChime();
-      sound.triggerHaptic([30, 50, 30]);
-      gracefulVoice.announceBusMilestone('arrived', selectedBus.busNumber, studentStop.shortName);
-    }
-  }, [selectedBus.busNumber, studentStop.shortName]);
+      // Native HTML5 Web Push Notification
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`${title} • ${activeBusNum}`, {
+            body: message,
+            icon: './favicon.svg',
+            tag: `${activeBusNum}-${tier}`,
+          });
+        } catch (_) {}
+      }
+
+      // Voice announcements with throttling (at least 3.5s spacing)
+      const now = Date.now();
+      if (now - lastVoiceTimeRef.current > 3500) {
+        lastVoiceTimeRef.current = now;
+        const isStudentStop = Boolean(
+          activeStopName &&
+          (studentStop.name.toLowerCase().includes(activeStopName.toLowerCase()) ||
+           activeStopName.toLowerCase().includes(studentStop.shortName.toLowerCase()))
+        );
+
+        if (tier === 'arrived' || tier === 'stop-arrived') {
+          sound.playArrivalChime();
+          sound.triggerHaptic([30, 50, 30]);
+          gracefulVoice.announceStopMilestone(
+            activeBusNum,
+            activeStopName,
+            0,
+            isStudentStop,
+            0,
+            true
+          );
+        } else if (
+          tier === '1km' ||
+          tier === '500m' ||
+          tier === '200m' ||
+          tier === 'stop-approaching'
+        ) {
+          sound.playApproachingChime();
+          sound.triggerHaptic(20);
+          const eta = Math.max(1, Math.round((distanceKm ?? 1) * 2.5));
+          gracefulVoice.announceStopMilestone(
+            activeBusNum,
+            activeStopName,
+            distanceKm ?? 1.0,
+            isStudentStop,
+            eta,
+            false
+          );
+        }
+      }
+    },
+    [selectedBus.busNumber, studentStop.name, studentStop.shortName]
+  );
 
   // Listen to Driver Phone GPS via Firebase RTDB or local broadcast
   useEffect(() => {
@@ -540,62 +614,165 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [selectedRoute, waypointIndex, studentStop, student.lat, student.lng, liveDriverGps]);
 
-  // Check proximity alert triggers
+  // Native Browser Notification Permission Request
   useEffect(() => {
-    const dist = telemetry.distanceToStudentStopMeters;
-    const triggered = triggeredTiersRef.current;
-
-    if (dist <= 1000 && dist > 500 && !triggered.has('1km')) {
-      triggered.add('1km');
-      triggerCustomAlert(
-        '1km',
-        'Bus approaching',
-        `Your bus is about 1 km from your stop (${studentStop.name}).`
-      );
-    } else if (dist <= 500 && dist > 200 && !triggered.has('500m')) {
-      triggered.add('500m');
-      triggerCustomAlert(
-        '500m',
-        'Your bus is very close',
-        `Distance: ~${Math.round(dist)}m. Walking time to ${studentStop.shortName} is 2 mins.`
-      );
-    } else if (dist <= 200 && dist > 40 && !triggered.has('200m')) {
-      triggered.add('200m');
-      triggerCustomAlert(
-        '200m',
-        'Get ready!',
-        `Your bus will reach ${studentStop.shortName} shortly.`
-      );
-    } else if (dist <= 40 && !triggered.has('arrived')) {
-      triggered.add('arrived');
-      triggerCustomAlert(
-        'arrived',
-        '✓ Bus Arrived',
-        `Bus ${selectedBus.busNumber} has reached ${studentStop.name}.`
-      );
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
     }
+  }, []);
 
-    // Reset if bus moves far away (new loop)
-    if (dist > 1500 && triggered.size > 0) {
-      triggered.clear();
-    }
-  }, [telemetry.distanceToStudentStopMeters, studentStop, selectedBus.busNumber, triggerCustomAlert]);
-
-  // Natural autonomous route progression loop
+  // Natural autonomous route progression loop & multi-bus proximity tracking
   useEffect(() => {
     const timer = setInterval(() => {
-      const waypoints = selectedRoute.waypoints;
-      let nextIndex = currentWaypointIndexRef.current + 1;
-      if (nextIndex >= waypoints.length) {
-        nextIndex = 0; // Loop around route
-        triggeredTiersRef.current.clear();
-      }
-      currentWaypointIndexRef.current = nextIndex;
-      setWaypointIndex(nextIndex);
+      // 1. Advance waypoint for every fleet bus along its route
+      allBuses.forEach((b) => {
+        const r = allRoutes.find((route) => route.id === b.routeId);
+        if (!r || !r.waypoints.length) return;
+        const current = fleetProgressRef.current[b.id] ?? 0;
+        let next = current + 1;
+        if (next >= r.waypoints.length) {
+          next = 0;
+        }
+        fleetProgressRef.current[b.id] = next;
+      });
+
+      // 2. Sync selectedBus waypointIndex to state for React rendering & map updates
+      const currentSelectedIdx = fleetProgressRef.current[selectedBus.id] ?? 0;
+      setWaypointIndex(currentSelectedIdx);
+
+      // 3. Proximity evaluation for EACH bus and EACH stop along its route
+      const triggered = triggeredTiersRef.current;
+
+      allBuses.forEach((bus) => {
+        const busRoute = allRoutes.find((r) => r.id === bus.routeId);
+        if (!busRoute || !busRoute.waypoints.length) return;
+
+        const bIdx = fleetProgressRef.current[bus.id] ?? 0;
+        const busCoord = busRoute.waypoints[bIdx] || busRoute.waypoints[0];
+
+        // --- A. Proximity to Student / User Location & Stop ---
+        // Announce when near to student, stating exact kilometers
+        const distToStudentMeters = calculateDistanceMeters(
+          busCoord[0],
+          busCoord[1],
+          studentStop.lat,
+          studentStop.lng
+        );
+        const distKm = parseFloat((distToStudentMeters / 1000).toFixed(1));
+
+        // Prioritize student's assigned bus and the currently selected bus
+        const isUserAssignedOrSelected = bus.id === student.assignedBusId || bus.id === selectedBus.id;
+
+        if (isUserAssignedOrSelected) {
+          if (distToStudentMeters <= 1200 && distToStudentMeters > 500 && !triggered.has(`${bus.id}-user-1km`)) {
+            triggered.add(`${bus.id}-user-1km`);
+            triggerCustomAlert(
+              '1km',
+              `Bus Near You (${distKm} km)`,
+              `${bus.busNumber} is ${distKm} km from your location (${studentStop.shortName}). ETA: ~${Math.max(1, Math.round(distKm * 2.5))} mins.`,
+              bus.busNumber,
+              studentStop.shortName,
+              distKm
+            );
+          } else if (distToStudentMeters <= 500 && distToStudentMeters > 150 && !triggered.has(`${bus.id}-user-500m`)) {
+            triggered.add(`${bus.id}-user-500m`);
+            triggerCustomAlert(
+              '500m',
+              `Bus Very Close (${distKm} km)`,
+              `${bus.busNumber} is approaching your stop (${studentStop.shortName})! Only ${distKm} km (${Math.round(distToStudentMeters)}m) away. Please prepare to board.`,
+              bus.busNumber,
+              studentStop.shortName,
+              distKm
+            );
+          } else if (distToStudentMeters <= 150 && distToStudentMeters > 50 && !triggered.has(`${bus.id}-user-200m`)) {
+            triggered.add(`${bus.id}-user-200m`);
+            triggerCustomAlert(
+              '200m',
+              `Get Ready! (${distKm} km)`,
+              `${bus.busNumber} is reaching ${studentStop.shortName} in less than 1 minute (${distKm} km away).`,
+              bus.busNumber,
+              studentStop.shortName,
+              distKm
+            );
+          } else if (distToStudentMeters <= 50 && !triggered.has(`${bus.id}-user-arrived`)) {
+            triggered.add(`${bus.id}-user-arrived`);
+            triggerCustomAlert(
+              'arrived',
+              `✓ ${bus.busNumber} Arrived at Your Location`,
+              `${bus.busNumber} has arrived at ${studentStop.name}. Please board the bus now.`,
+              bus.busNumber,
+              studentStop.name,
+              0
+            );
+          }
+
+          // Reset user milestone keys when bus moves far past the stop
+          if (distToStudentMeters > 2000) {
+            triggered.delete(`${bus.id}-user-1km`);
+            triggered.delete(`${bus.id}-user-500m`);
+            triggered.delete(`${bus.id}-user-200m`);
+            triggered.delete(`${bus.id}-user-arrived`);
+          }
+        }
+
+        // --- B. Proximity to EACH STOP of the bus route ---
+        busRoute.stops.forEach((stop) => {
+          const distToStopMeters = calculateDistanceMeters(
+            busCoord[0],
+            busCoord[1],
+            stop.lat,
+            stop.lng
+          );
+          const stopDistKm = parseFloat((distToStopMeters / 1000).toFixed(1));
+
+          // Approaching milestone for this stop (between 150m and 1000m)
+          if (
+            distToStopMeters <= 1000 &&
+            distToStopMeters > 150 &&
+            !triggered.has(`${bus.id}-stop-${stop.id}-appr`)
+          ) {
+            triggered.add(`${bus.id}-stop-${stop.id}-appr`);
+            triggerCustomAlert(
+              'stop-approaching',
+              `${bus.busNumber} Approaching ${stop.shortName}`,
+              `${bus.busNumber} is ${stopDistKm} km from ${stop.name}.`,
+              bus.busNumber,
+              stop.shortName,
+              stopDistKm
+            );
+          }
+          // Arrived milestone for this stop (<= 60m)
+          else if (
+            distToStopMeters <= 60 &&
+            !triggered.has(`${bus.id}-stop-${stop.id}-arr`)
+          ) {
+            triggered.add(`${bus.id}-stop-${stop.id}-arr`);
+            triggerCustomAlert(
+              'stop-arrived',
+              `✓ ${bus.busNumber} Arrived at ${stop.shortName}`,
+              `${bus.busNumber} has reached ${stop.name}.`,
+              bus.busNumber,
+              stop.shortName,
+              0
+            );
+          }
+          // Reset stop alert flags when bus moves away (> 1600m)
+          else if (
+            distToStopMeters > 1600 &&
+            (triggered.has(`${bus.id}-stop-${stop.id}-appr`) ||
+             triggered.has(`${bus.id}-stop-${stop.id}-arr`))
+          ) {
+            triggered.delete(`${bus.id}-stop-${stop.id}-appr`);
+            triggered.delete(`${bus.id}-stop-${stop.id}-arr`);
+          }
+        });
+      });
     }, 1100);
 
     return () => clearInterval(timer);
-  }, [selectedRoute]);
+  }, [allBuses, allRoutes, selectedBus, student.assignedBusId, studentStop, triggerCustomAlert]);
 
   // Real Geolocation watcher
   const startLocationTracking = useCallback(() => {

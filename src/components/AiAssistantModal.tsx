@@ -11,12 +11,23 @@ interface AiAssistantModalProps {
 }
 
 export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onClose }) => {
-  const { selectedBus, selectedRoute, studentStop, telemetry, voiceAssistantId, voiceSpeed } = useBus();
+  const {
+    selectedBus,
+    selectedRoute,
+    studentStop,
+    student,
+    telemetry,
+    allBuses,
+    allRoutes,
+    activeAlert,
+    voiceAssistantId,
+    voiceSpeed,
+  } = useBus();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
     {
       sender: 'ai',
-      text: `Vanakkam! I am the official Dhanalakshmi College of Engineering (DCE) Real-Time Bus AI. Ask me anything in English or Tanglish (e.g. "Bus enga irukku?", "When will bus reach Tambaram?").`,
+      text: `Vanakkam! I am the official Dhanalakshmi College of Engineering (DCE) Real-Time Bus AI.\nAsk me about live bus locations, speeds, routes, stops, or ETAs in English or Tanglish (e.g. "Bus enga irukku?", "How much km to Tambaram?").\n\n📌 Note: This chatbot is exclusively dedicated to DCE campus bus tracking.`,
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +72,18 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
     setIsLoading(true);
 
     try {
+      // Live web data extraction for all fleet buses and current route stops
+      const allBusesSummary = allBuses
+        .map((b) => {
+          const r = allRoutes.find((route) => route.id === b.routeId);
+          return `• ${b.busNumber} (${r?.name || 'Campus Express'}): Driver ${b.driverName} (${b.driverPhone}), Plate: ${b.plateNumber}, Seats: ${b.currentOccupancy}/${b.capacity}`;
+        })
+        .join('\n');
+
+      const routeStopsSummary = selectedRoute.stops
+        .map((s) => `${s.sequence}. ${s.name} (${s.scheduledTime})`)
+        .join(' ➔ ');
+
       const response = await queryTransitAssistant(question, {
         busId: selectedBus.busNumber,
         routeId: selectedRoute.code,
@@ -68,14 +91,19 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
         currentSpeed: telemetry.speedKmh,
         latitude: telemetry.lat,
         longitude: telemetry.lng,
-        distanceToStop: formatDistance(telemetry.distanceToStudentStopMeters),
+        distanceToStop: `${(telemetry.distanceToStudentStopMeters / 1000).toFixed(1)} km (${formatDistance(telemetry.distanceToStudentStopMeters)})`,
         distanceToCollegeKm: 6.8,
         etaMinutes: telemetry.etaMinutes,
         nextStopName: telemetry.nextStop.name,
+        distanceToNextStop: formatDistance(telemetry.distanceToNextStopMeters),
         studentStopName: studentStop.name,
+        studentName: student.name,
         status: telemetry.status === 'LIVE' ? 'Moving' : telemetry.status,
         lastUpdatedTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        freshnessSeconds: 15,
+        freshnessSeconds: 10,
+        routeStopsSummary,
+        allBusesSummary,
+        activeAlertsSummary: activeAlert ? `${activeAlert.title} - ${activeAlert.message}` : 'All buses operating normally on schedule',
       });
 
       const newIndex = messages.length + 1;
@@ -94,7 +122,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
         );
       }
     } catch {
-      const fallbackText = `Bus ${selectedBus.busNumber} (${selectedRoute.name}) - Speed: ${telemetry.speedKmh} km/h. Moving near ${telemetry.nextStop.shortName}. Will reach ${studentStop.shortName} in ~${telemetry.etaMinutes} mins.`;
+      const fallbackText = `Bus ${selectedBus.busNumber} (${selectedRoute.name}) - Speed: ${telemetry.speedKmh} km/h. Moving near ${telemetry.nextStop.shortName}. Distance to your stop (${studentStop.shortName}): ${(telemetry.distanceToStudentStopMeters / 1000).toFixed(1)} km (~${telemetry.etaMinutes} mins to reach).`;
       const newIndex = messages.length + 1;
       setMessages((prev) => [
         ...prev,
