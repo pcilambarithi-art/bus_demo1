@@ -12,6 +12,22 @@ if (typeof window !== 'undefined' && typeof setWorkerUrl === 'function') {
     console.warn('[MapLibre] Failed to set worker URL:', err);
   }
 }
+
+// Suppress harmless upstream OpenFreeMap vector tile shield warnings in console
+if (typeof window !== 'undefined') {
+  const origWarn = console.warn;
+  console.warn = function (...args: any[]) {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('shield') || args[0].includes('layers[')) &&
+      args[0].includes('Expected value to be of type number')
+    ) {
+      return;
+    }
+    origWarn.apply(console, args);
+  };
+}
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useBus } from '../context/BusContext';
