@@ -135,6 +135,8 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   const studentMarkerRef = useRef<L.Marker | null>(null);
   const stopsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const leafletPolylineRef = useRef<L.Polyline | null>(null);
+  const leafletGlowPolylineRef = useRef<L.Polyline | null>(null);
 
   // MapLibre refs
   const mlMapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -523,23 +525,33 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
     studentMarkerRef.current = studentMarker;
 
     // Add Route Polyline to Leaflet
-    L.polyline(selectedRoute.waypoints, {
+    const glowLine = L.polyline(selectedRoute.waypoints, {
       color: '#00F0FF',
       weight: 7,
       opacity: 0.35,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
+    leafletGlowPolylineRef.current = glowLine;
 
-    L.polyline(selectedRoute.waypoints, {
+    const mainLine = L.polyline(selectedRoute.waypoints, {
       color: '#00F0FF',
       weight: 3.5,
       opacity: 0.9,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
+    leafletPolylineRef.current = mainLine;
 
-    // Add Stops to Leaflet
+    // Render initial stops
+    renderLeafletStops();
+  }, []);
+
+  // Render Leaflet Stops
+  const renderLeafletStops = useCallback(() => {
+    if (!stopsLayerGroupRef.current) return;
+    stopsLayerGroupRef.current.clearLayers();
+
     selectedRoute.stops.forEach((stop, index) => {
       const isStudentStop = stop.id === studentStop.id;
       const stopIcon = L.divIcon({
@@ -567,6 +579,18 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       marker.on('click', () => setStreetViewStop(stop));
     });
   }, [selectedRoute, studentStop]);
+
+  // Update Leaflet Route & Stops when selectedRoute changes
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    renderLeafletStops();
+    if (leafletPolylineRef.current) {
+      leafletPolylineRef.current.setLatLngs(selectedRoute.waypoints);
+    }
+    if (leafletGlowPolylineRef.current) {
+      leafletGlowPolylineRef.current.setLatLngs(selectedRoute.waypoints);
+    }
+  }, [selectedRoute, renderLeafletStops]);
 
   // =========================================================================
   // 3. GOOGLE MAPS ENGINE INITIALIZATION (Google Maps API + Key)
@@ -778,6 +802,50 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       destroyGoogleMap();
     };
   }, [destroyGoogleMap]);
+
+  // Jump camera and marker instantly when user switches bus or route
+  useEffect(() => {
+    currentPosRef.current = [telemetry.lat, telemetry.lng];
+    targetPosRef.current = [telemetry.lat, telemetry.lng];
+
+    // 1. MapLibre: re-center and update bus pin number
+    if (mlMapInstanceRef.current && mlBusMarkerRef.current) {
+      try {
+        mlBusMarkerRef.current.setLngLat([telemetry.lng, telemetry.lat]);
+        const el = mlBusMarkerRef.current.getElement();
+        if (el) {
+          const numberEl = el.querySelector('span.tracking-wider');
+          if (numberEl) numberEl.textContent = selectedBus.busNumber;
+        }
+        mlMapInstanceRef.current.easeTo({
+          center: [telemetry.lng, telemetry.lat],
+          duration: 800,
+        });
+      } catch (_) {}
+    }
+
+    // 2. Leaflet: re-center and update bus pin number
+    if (mapInstanceRef.current && busMarkerRef.current) {
+      try {
+        busMarkerRef.current.setLatLng([telemetry.lat, telemetry.lng]);
+        const iconEl = busMarkerRef.current.getElement();
+        if (iconEl) {
+          const numberEl = iconEl.querySelector('span.tracking-wider');
+          if (numberEl) numberEl.textContent = selectedBus.busNumber;
+        }
+        mapInstanceRef.current.panTo([telemetry.lat, telemetry.lng], { animate: true, duration: 0.8 });
+      } catch (_) {}
+    }
+
+    // 3. Google Maps: re-center and update bus pin
+    if (gMapInstanceRef.current && gBusMarkerRef.current) {
+      try {
+        gBusMarkerRef.current.setPosition({ lat: telemetry.lat, lng: telemetry.lng });
+        gBusMarkerRef.current.setTitle(`Bus ${selectedBus.busNumber}`);
+        gMapInstanceRef.current.panTo({ lat: telemetry.lat, lng: telemetry.lng });
+      } catch (_) {}
+    }
+  }, [selectedBus.id, selectedRoute.id]);
 
   // =========================================================================
   // 4. SILKY SMOOTH BUS MOVEMENT (60 FPS interpolation across all engines)

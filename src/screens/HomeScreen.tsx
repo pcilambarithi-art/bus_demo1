@@ -22,6 +22,8 @@ export const HomeScreen: React.FC = () => {
     setActiveTab,
     locationPermissionState,
     setIsLocationModalOpen,
+    allBuses,
+    selectBus,
   } = useBus();
 
   // Dynamic time greeting
@@ -51,6 +53,64 @@ export const HomeScreen: React.FC = () => {
           <span className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold backdrop-blur-md dark:bg-white/5 bg-slate-100 dark:border dark:border-white/10 border-slate-200 dark:text-slate-300 text-slate-700">
             Assigned: <strong className="text-cyan-500 dark:text-cyan-400">{studentStop.shortName}</strong>
           </span>
+        </div>
+      </div>
+
+      {/* Fleet Bus Quick Selector */}
+      <div className="flex flex-col gap-1.5 px-0.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Choose Bus to Track (Live Status Only For Selected Bus)
+          </span>
+          <span className="text-[10px] text-cyan-500 dark:text-cyan-400 font-mono font-semibold">
+            {allBuses.length} Buses
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-1 px-1">
+          {allBuses.map((bus) => {
+            const isSelected = bus.id === selectedBus.id;
+            return (
+              <button
+                key={bus.id}
+                onClick={() => selectBus(bus.id)}
+                className={`
+                  flex items-center gap-2 p-1.5 pr-3 rounded-2xl transition-all duration-200 active:scale-95 shrink-0 border select-none
+                  ${
+                    isSelected
+                      ? 'dark:bg-cyan-500/20 bg-cyan-50 border-cyan-400 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(6,182,212,0.35)] ring-1 ring-cyan-400'
+                      : 'dark:bg-white/5 bg-slate-100 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:border-cyan-400/40'
+                  }
+                `}
+              >
+                {/* Thumbnail image */}
+                <div className="relative w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-cyan-400/30">
+                  <img
+                    src={bus.busImage}
+                    alt={bus.busNumber}
+                    className="w-full h-full object-cover"
+                  />
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-cyan-500/20" />
+                  )}
+                </div>
+
+                <div className="text-left leading-tight">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold font-mono">
+                      {bus.busNumber}
+                    </span>
+                    {isSelected && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-sans block truncate max-w-[90px]">
+                    {bus.routeId.replace('route-', 'Route ')}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -98,11 +158,19 @@ export const HomeScreen: React.FC = () => {
         className="p-3.5 sm:p-6 group"
       >
         <div className="flex flex-col gap-2.5 sm:gap-4">
-          {/* Top row: Bus number and Live Indicator */}
+          {/* Top row: Bus number, Live Image Thumbnail and Live Indicator */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg sm:text-2xl shadow-[0_4px_20px_rgba(6,182,212,0.45)] group-hover:scale-105 transition-transform duration-300 shrink-0">
-                🚌
+              <div className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden border border-cyan-400/40 shadow-[0_4px_20px_rgba(6,182,212,0.4)] shrink-0 group-hover:scale-105 transition-transform duration-300">
+                <img
+                  key={selectedBus.id}
+                  src={selectedBus.busImage}
+                  alt={selectedBus.busNumber}
+                  className="w-full h-full object-cover transition-opacity duration-300"
+                />
+                <span className="absolute bottom-0 inset-x-0 bg-black/75 backdrop-blur-sm text-[8px] font-mono text-center text-cyan-300 font-bold leading-tight py-0.5">
+                  LIVE
+                </span>
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 sm:gap-2">
@@ -178,6 +246,56 @@ export const HomeScreen: React.FC = () => {
                 {selectedBus.capacity - selectedBus.currentOccupancy}
                 <span className="text-xs font-normal text-slate-400"> / {selectedBus.capacity}</span>
               </span>
+            </div>
+          </div>
+
+          {/* Live Vehicle Feed Showcase (Updates dynamically with chosen bus) */}
+          <div className="relative rounded-2xl overflow-hidden border dark:border-white/10 border-slate-200/80 bg-slate-950 shadow-md">
+            <div className="relative h-28 sm:h-36 w-full overflow-hidden">
+              <img
+                key={selectedBus.id}
+                src={selectedBus.busImage}
+                alt={selectedBus.busNumber}
+                className="w-full h-full object-cover object-center transition-all duration-700 group-hover:scale-105 animate-[fadeIn_0.35s_ease-out]"
+              />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-black/20" />
+
+              {/* Top Live Badges */}
+              <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/15 text-white text-[9px] sm:text-[10px] font-mono shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <span className="font-bold tracking-wider">LIVE VEHICLE FEED</span>
+              </div>
+
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 backdrop-blur-md text-[9px] sm:text-[10px] font-bold">
+                  {selectedBus.hasAC ? '❄️ AC Coach' : 'Standard Coach'}
+                </span>
+              </div>
+
+              {/* Bottom Photo Overlay Data */}
+              <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white font-black text-xs sm:text-sm tracking-tight font-mono drop-shadow-md">
+                      {selectedBus.busNumber}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-400/40 backdrop-blur-md">
+                      {selectedBus.plateNumber}
+                    </span>
+                  </div>
+                  <p className="text-[9px] sm:text-[10px] text-slate-300 truncate mt-0.5 drop-shadow">
+                    Driver: <strong>{selectedBus.driverName}</strong> (★ {selectedBus.driverRating})
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Capacity</span>
+                  <span className="text-[11px] sm:text-xs font-mono font-bold text-emerald-400">
+                    {selectedBus.capacity - selectedBus.currentOccupancy} Seats Free
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

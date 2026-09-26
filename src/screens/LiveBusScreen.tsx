@@ -149,22 +149,34 @@ export const LiveBusScreen: React.FC = () => {
             <div className="w-10 h-1 rounded-full bg-slate-400/40 dark:bg-white/20" />
           </div>
 
-          {/* Top Row: LIVE badge + Bus Number + Quick Toggle */}
+          {/* Top Row: Bus Thumbnail + LIVE badge + Bus Number + Quick Toggle */}
           <div
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center justify-between mb-2 cursor-pointer"
           >
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                LIVE
-              </span>
-              <h3 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight font-sans">
-                {selectedBus.busNumber}
-              </h3>
-              <span className="text-xs font-mono text-slate-400">
-                {selectedBus.plateNumber}
-              </span>
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-cyan-400/40 shrink-0 shadow-md">
+                <img
+                  key={selectedBus.id}
+                  src={selectedBus.busImage}
+                  alt={selectedBus.busNumber}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    LIVE
+                  </span>
+                  <h3 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight font-sans">
+                    {selectedBus.busNumber}
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-cyan-500 dark:text-cyan-400 font-bold block">
+                  {selectedBus.plateNumber}
+                </span>
+              </div>
             </div>
 
             {/* Controls: Audio Mute/Unmute + Expand / Collapse */}
@@ -233,7 +245,7 @@ export const LiveBusScreen: React.FC = () => {
                 <Clock className="w-3 h-3 text-emerald-400" />
                 ETA
               </span>
-              <EtaDisplay minutes={telemetry.etaMinutes} size="md" className="text-emerald-500 dark:text-emerald-400 font-bold" />
+              <EtaDisplay minutes={telemetry.etaMinutes} size="sm" className="text-emerald-500 dark:text-emerald-400 font-bold" />
             </div>
           </div>
 
@@ -246,11 +258,35 @@ export const LiveBusScreen: React.FC = () => {
           {/* EXPANDABLE SECTION (Opens when tapped or dragged up) */}
           {isExpanded && (
             <div className="pt-3 mt-3 border-t dark:border-white/10 border-slate-200 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+              {/* Full Live Bus Image Feed Banner */}
+              <div className="relative rounded-2xl overflow-hidden border border-cyan-400/30 h-28 w-full shadow-inner">
+                <img
+                  key={selectedBus.id}
+                  src={selectedBus.busImage}
+                  alt={selectedBus.busNumber}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <span className="absolute bottom-2 left-3 text-white text-xs font-mono font-bold">
+                  {selectedBus.busNumber} • {selectedRoute.name}
+                </span>
+              </div>
+
               {/* Driver Contact & Amenities */}
               <div className="flex items-center justify-between p-2.5 rounded-2xl dark:bg-white/5 bg-slate-50 border dark:border-white/10 border-slate-200">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
-                    {selectedBus.driverName.charAt(0)}
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-cyan-400/40 shadow-sm shrink-0">
+                    {selectedBus.driverPhoto ? (
+                      <img
+                        src={selectedBus.driverPhoto}
+                        alt={selectedBus.driverName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                        {selectedBus.driverName.charAt(0)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h4 className="text-xs font-bold dark:text-white text-slate-900">

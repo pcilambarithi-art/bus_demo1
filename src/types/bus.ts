@@ -31,6 +31,7 @@ export interface BusVehicle {
   driverPhone: string;
   driverRating: number;
   driverPhoto?: string;
+  busImage?: string;
   capacity: number;
   currentOccupancy: number;
   hasAC: boolean;

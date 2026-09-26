@@ -8,6 +8,8 @@ import {
   Search,
   Navigation,
   Eye,
+  Phone,
+  Wind,
 } from 'lucide-react';
 import { StreetViewModal } from '../components/StreetViewModal';
 import type { BusStop } from '../types/bus';
@@ -20,6 +22,8 @@ export const RouteScreen: React.FC = () => {
     studentStop,
     updateStudentStop,
     telemetry,
+    selectedBus,
+    allBuses,
   } = useBus();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +36,37 @@ export const RouteScreen: React.FC = () => {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 pb-24 lg:pb-8 animate-[fadeIn_0.35s_cubic-bezier(0.16,1,0.3,1)]">
       
+      {/* Route Switcher Selector Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        {allRoutes.map((r) => {
+          const isSelected = r.id === selectedRoute.id;
+          const assignedBus = allBuses.find((b) => b.routeId === r.id);
+          return (
+            <button
+              key={r.id}
+              onClick={() => selectRoute(r.id)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                isSelected
+                  ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-[1.02]'
+                  : 'dark:bg-white/5 bg-slate-100 text-slate-600 dark:text-slate-300 border-transparent hover:border-slate-300 dark:hover:border-white/10'
+              }`}
+            >
+              {assignedBus?.busImage ? (
+                <img
+                  src={assignedBus.busImage}
+                  alt={assignedBus.busNumber}
+                  className="w-5 h-5 rounded-full object-cover border border-cyan-400/40"
+                />
+              ) : (
+                <span>🚌</span>
+              )}
+              <span>{r.code}</span>
+              <span className="text-[10px] opacity-75 font-normal truncate max-w-[100px]">{r.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Route Header Overview Card */}
       <GlassCard className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -78,6 +113,95 @@ export const RouteScreen: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs dark:bg-white/5 bg-slate-100 border dark:border-white/10 border-slate-200 dark:text-white text-slate-800 placeholder-slate-400 outline-none focus:border-cyan-400 transition-colors"
           />
+        </div>
+      </GlassCard>
+
+      {/* Live Vehicle Feed for Selected Bus */}
+      <GlassCard className="p-4 sm:p-5 border-cyan-400/30 overflow-hidden relative" key={selectedBus.id}>
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+          {/* Live Bus Image */}
+          <div className="relative w-full sm:w-44 h-32 sm:h-28 rounded-2xl overflow-hidden shrink-0 border border-white/10 group shadow-md">
+            {selectedBus.busImage ? (
+              <img
+                src={selectedBus.busImage}
+                alt={selectedBus.busNumber}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-slate-800 flex items-center justify-center text-3xl">🚌</div>
+            )}
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-cyan-400/40 text-[9px] font-black text-cyan-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+              <span>LIVE FEED</span>
+            </div>
+            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between px-2 py-1 rounded-xl bg-black/70 backdrop-blur-md text-[10px] font-mono text-white">
+              <span>{selectedBus.busNumber}</span>
+              <span className="text-cyan-300">{telemetry.speedKmh} km/h</span>
+            </div>
+          </div>
+
+          {/* Bus Details & Driver */}
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
+                    {selectedBus.busNumber}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
+                    {selectedBus.plateNumber}
+                  </span>
+                  {selectedBus.hasAC && (
+                    <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-blue-500/15 text-blue-400 flex items-center gap-0.5 border border-blue-400/20">
+                      <Wind className="w-2.5 h-2.5" /> AC
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  Assigned vehicle for {selectedRoute.name}
+                </p>
+              </div>
+
+              {/* Live Status Badge */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-400 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="uppercase text-[10px] tracking-wider">{telemetry.status}</span>
+              </div>
+            </div>
+
+            {/* Driver & Telemetry Specs Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t dark:border-white/5 border-slate-200/60 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src={selectedBus.driverPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                  alt={selectedBus.driverName}
+                  className="w-7 h-7 rounded-full object-cover border border-cyan-400/40 shrink-0"
+                />
+                <div className="min-w-0 truncate">
+                  <p className="text-[10px] text-slate-400 leading-tight">Driver</p>
+                  <p className="text-xs font-bold dark:text-white text-slate-800 truncate">{selectedBus.driverName}</p>
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[10px] text-slate-400 leading-tight">Occupancy</p>
+                <p className="text-xs font-bold dark:text-white text-slate-800 truncate">
+                  {selectedBus.currentOccupancy} / {selectedBus.capacity} seats
+                </p>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 flex items-center justify-end sm:justify-start">
+                <a
+                  href={`tel:${selectedBus.driverPhone}`}
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-300 flex items-center justify-center gap-1.5 text-xs font-bold transition-all active:scale-95"
+                >
+                  <Phone className="w-3 h-3 text-cyan-400" />
+                  <span>Call Driver</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </GlassCard>
 
