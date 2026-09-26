@@ -157,8 +157,14 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
   ];
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
-      <div className="relative w-full max-w-lg rounded-3xl dark:bg-[#0B132B]/95 bg-white/95 dark:border-white/15 border-slate-200 border p-6 shadow-2xl backdrop-blur-2xl flex flex-col max-h-[85vh]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg rounded-3xl dark:bg-[#0B132B]/95 bg-white/95 dark:border-white/15 border-slate-200 border p-6 shadow-2xl backdrop-blur-2xl flex flex-col max-h-[85vh]"
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b dark:border-white/10 border-slate-200 shrink-0">
@@ -204,11 +210,15 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
               <span>{VOICE_PROFILES[voiceAssistantId]?.name || 'Demodokos (AI)'} ({voiceSpeed}x)</span>
             </button>
 
+            {/* Prominent Exit Button */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full dark:text-slate-400 hover:text-white dark:hover:bg-white/10 text-slate-600 hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 dark:text-rose-400 border border-rose-500/30 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Exit AI Copilot"
+              aria-label="Exit DCE Transit AI Copilot"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span>Exit</span>
             </button>
           </div>
         </div>
@@ -297,6 +307,18 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
             className="p-2.5 rounded-xl bg-cyan-500 text-black hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md"
           >
             <Send className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Bottom Footer Helper & Secondary Exit */}
+        <div className="flex items-center justify-between pt-2.5 text-[11px] text-slate-400 shrink-0">
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">DCE Live Campus Transit AI</span>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 text-[11px] font-bold text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 transition-colors cursor-pointer px-2 py-0.5 rounded-lg hover:bg-rose-500/10"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Close & Exit</span>
           </button>
         </div>
 
