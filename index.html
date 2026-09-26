@@ -2,7 +2,8 @@
 <html lang="en" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/jpeg" href="./app-logo.jpg" />
+    <link rel="apple-touch-icon" href="./app-logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>DCE Bus Tracker — Dhanalakshmi College of Engineering, Chennai</title>
     <meta name="description" content="Official Real-Time GPS College Bus Tracking System for Dhanalakshmi College of Engineering (DCE), Chennai, Tamil Nadu with live telemetry, map navigation, and proximity alerts." />
@@ -34,6 +35,16 @@
           window.dispatchEvent(new CustomEvent('google-maps-auth-failure'));
         }
       });
+    </script>
+    <!-- GitHub Pages SPA redirect handler -->
+    <script>
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
     </script>
     <!-- Instant theme detector before DOM paint (prevents flicker) -->
     <script>
@@ -104,9 +115,10 @@
           }
         });
       }
+    </script>
     <script>
       (function() {
-        var gKey = (typeof window !== 'undefined' && (window as any)?.__GOOGLE_MAPS_KEY) || '';
+        var gKey = (typeof window !== 'undefined' && window.__GOOGLE_MAPS_KEY) || '';
         if (gKey) {
           var s = document.createElement('script');
           s.src = 'https://maps.googleapis.com/maps/api/js?key=' + gKey + '&libraries=places&callback=initMap';
@@ -116,8 +128,8 @@
         }
       })();
     </script>
-    <script type="module" crossorigin src="./assets/index-DL4mSTXI.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cv4BWI6O.css">
+    <script type="module" crossorigin src="./assets/index-BqqWoOHt.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-I4tPGEDl.css">
   </head>
   <body class="bg-[#070B19] text-slate-100 selection:bg-cyan-500 selection:text-black overflow-x-hidden antialiased font-sans">
     <div id="root">
