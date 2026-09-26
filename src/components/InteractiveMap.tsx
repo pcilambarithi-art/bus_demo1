@@ -26,6 +26,7 @@ interface InteractiveMapProps {
   expandedView?: boolean;
   onCardClick?: () => void;
   showPlacesSearch?: boolean;
+  topOffset?: boolean;
 }
 
 // OpenFreeMap vector styles (OpenStreetMap data, zero API keys, GPU accelerated)
@@ -57,6 +58,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   showControls = true,
   onCardClick,
   showPlacesSearch = true,
+  topOffset = true,
 }) => {
   const {
     selectedRoute,
@@ -961,7 +963,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
 
       {/* Floating Google Places / OpenStreetMap Search Bar (Desktop/Tablet Top Center) */}
       {showPlacesSearch && (
-        <div className="hidden sm:block absolute top-4 left-4 right-16 sm:left-44 sm:right-44 z-[35] pointer-events-auto max-w-sm">
+        <div className={`hidden sm:block absolute ${topOffset ? 'top-16 sm:top-[70px]' : 'top-4'} left-4 right-16 sm:left-44 sm:right-44 z-[35] pointer-events-auto max-w-sm transition-all`}>
           <PlacesSearchBar
             onSelectPlace={(place) => {
               if (mapEngine === 'google' && gMapInstanceRef.current) {
@@ -978,7 +980,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       )}
 
       {/* Floating Speed & Telemetry Quick Capsule (Desktop only) */}
-      <div className="hidden sm:flex absolute top-4 left-4 z-[30] pointer-events-none items-center gap-2">
+      <div className={`hidden sm:flex absolute ${topOffset ? 'top-16 sm:top-[70px]' : 'top-4'} left-3 sm:left-4 z-20 pointer-events-none items-center gap-2 transition-all`}>
         <div className="px-3.5 py-1.5 rounded-full backdrop-blur-xl bg-slate-900/80 dark:bg-[#070B19]/80 border border-white/15 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.35)] flex items-center gap-2 text-xs font-semibold text-white">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="font-mono text-cyan-400">{telemetry.speedKmh} km/h</span>
@@ -989,7 +991,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
 
       {/* Floating Map Navigation Controls (Top Right) */}
       {showControls && (
-        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-[30] flex flex-col gap-2">
+        <div className={`absolute ${topOffset ? 'top-16 sm:top-[70px]' : 'top-3 sm:top-4'} right-3 sm:right-4 z-20 flex flex-col gap-2 transition-all`}>
           
           {/* Audio Mute/Unmute Toggle (Desktop & Mobile) */}
           <button

@@ -40,7 +40,7 @@ export const LiveBusScreen: React.FC = () => {
     <div className="relative w-full h-[calc(100vh-5rem)] lg:h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden pb-16 lg:pb-0 animate-[fadeIn_0.3s_ease-out]">
       
       {/* Top Floating Glass Header (Clean and responsive) */}
-      <div className="absolute top-2.5 sm:top-3 left-3 right-3 sm:left-4 sm:right-4 z-30 flex items-center justify-between pointer-events-none gap-2">
+      <div className="absolute top-2.5 sm:top-3 left-3 right-3 sm:left-4 sm:right-4 z-40 flex items-center justify-between pointer-events-none gap-2">
         <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
           {/* Back button */}
           <button
@@ -122,6 +122,7 @@ export const LiveBusScreen: React.FC = () => {
           className="w-full h-full"
           showControls={true}
           showPlacesSearch={false}
+          topOffset={true}
         />
       </div>
 
