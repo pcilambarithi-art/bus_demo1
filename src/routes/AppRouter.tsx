@@ -29,36 +29,32 @@ export const AppRouter: React.FC<AppRouterProps> = ({ children }) => {
     const portalParam = search.get('portal');
     const modeParam = search.get('mode');
 
-    const isAdminLogin = path.includes('/admin/login') || hash.includes('/admin/login') || portalParam === 'admin-login';
-    const isAdminDashboard = path.includes('/admin/dashboard') || hash.includes('/admin/dashboard') || portalParam === 'admin' || portalParam === 'admin-dashboard';
-    const isStaffLogin = path.includes('/staff/login') || hash.includes('/staff/login') || portalParam === 'staff-login';
-    const isStaffDashboard = path.includes('/staff/dashboard') || hash.includes('/staff/dashboard') || portalParam === 'staff' || portalParam === 'staff-dashboard' || modeParam === 'driver';
+    const isAdmin = path.includes('/admin') || hash.includes('admin') || portalParam === 'admin' || portalParam === 'admin-login' || portalParam === 'admin-dashboard' || search.has('admin');
+    const isStaff = path.includes('/staff') || hash.includes('staff') || portalParam === 'staff' || portalParam === 'staff-login' || portalParam === 'staff-dashboard' || modeParam === 'driver' || search.has('staff');
 
     // CRITICAL REQUIREMENT: Native APK must NEVER access Admin or Staff portals
     if (isNativeApp()) {
-      if (isAdminLogin || isAdminDashboard || isStaffLogin || isStaffDashboard) {
+      if (isAdmin || isStaff) {
         return 'apk-restricted';
       }
       return 'student';
     }
 
     // Web Browser Routing Logic
-    if (isAdminDashboard) {
+    if (isAdmin) {
       const hasAdminToken = Boolean(busApiService.getAdminToken());
-      return hasAdminToken ? 'admin-dashboard' : 'admin-login';
-    }
-    if (isAdminLogin) {
-      const hasAdminToken = Boolean(busApiService.getAdminToken());
-      return hasAdminToken ? 'admin-dashboard' : 'admin-login';
+      if (hasAdminToken) {
+        return 'admin-dashboard';
+      }
+      return 'admin-login';
     }
 
-    if (isStaffDashboard) {
+    if (isStaff) {
       const hasStaffToken = Boolean(busApiService.getStaffToken());
-      return hasStaffToken ? 'staff-dashboard' : 'staff-login';
-    }
-    if (isStaffLogin) {
-      const hasStaffToken = Boolean(busApiService.getStaffToken());
-      return hasStaffToken ? 'staff-dashboard' : 'staff-login';
+      if (hasStaffToken) {
+        return 'staff-dashboard';
+      }
+      return 'staff-login';
     }
 
     return 'student';
