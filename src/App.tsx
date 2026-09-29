@@ -16,6 +16,7 @@ import { RouteScreen } from './screens/RouteScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { DriverScreen } from './screens/DriverScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { AppRouter } from './routes/AppRouter';
 
 const MainAppLayout: React.FC = () => {
   const { activeTab, isAiModalOpen, setIsAiModalOpen } = useBus();
@@ -92,7 +93,9 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BusProvider>
-      <AppContent />
+      <AppRouter>
+        <AppContent />
+      </AppRouter>
     </BusProvider>
   );
 };

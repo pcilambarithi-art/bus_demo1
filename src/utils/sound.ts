@@ -164,6 +164,30 @@ class MobilityAudioSystem {
   }
 
   /**
+   * Alert tone for warnings or validation errors
+   */
+  public playAlert() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+      osc.frequency.setValueAtTime(320, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.22);
+    } catch {
+      // Audio suppressed
+    }
+  }
+
+  /**
    * Trigger light mobile vibration
    */
   public triggerHaptic(pattern: number | number[] = 15) {

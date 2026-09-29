@@ -8,18 +8,24 @@ export interface BusStop {
   scheduledTime: string;
   studentsWaiting: number;
   isTerminal?: boolean;
+  routeId?: string;
+  isActive?: boolean;
 }
 
 export interface BusRoute {
   id: string;
   name: string;
   code: string;
+  routeNumber?: string;
   origin: string;
   destination: string;
+  startingPoint?: string;
+  description?: string;
   totalDistanceKm: number;
   estimatedTotalMinutes: number;
   stops: BusStop[];
   waypoints: [number, number][]; // Lat, Lng polyline
+  assignedBusIds?: string[];
 }
 
 export interface BusVehicle {
@@ -27,6 +33,7 @@ export interface BusVehicle {
   busNumber: string;
   plateNumber: string;
   routeId: string;
+  routeName?: string;
   driverName: string;
   driverPhone: string;
   driverRating: number;
@@ -36,6 +43,15 @@ export interface BusVehicle {
   hasAC: boolean;
   isLive: boolean;
   statusText?: string;
+  operationalStatus?: 'In Service' | 'On Route' | 'Delayed' | 'Breakdown' | 'Maintenance' | 'Out of Service' | 'Trip Started' | 'Trip Completed' | 'Stopped' | 'Emergency' | 'Ready' | 'Not Started';
+  startingPoint?: string;
+  destination?: string;
+  assignedStaffId?: string;
+  isActive?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+  currentSpeed?: number;
+  lastUpdated?: string;
 }
 
 export type BusMovementStatus = 'LIVE' | 'APPROACHING' | 'ARRIVING' | 'ARRIVED' | 'OFFLINE';
@@ -103,3 +119,102 @@ export interface VoiceAssistantProfile {
   sampleText: string;
 }
 
+// -------------------------------------------------------------
+// Admin & Bus Staff Management Models
+// -------------------------------------------------------------
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin';
+  lastLogin?: string;
+  token?: string;
+}
+
+export interface StaffUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'driver' | 'conductor' | 'supervisor';
+  assignedBusId: string;
+  assignedRouteId?: string;
+  status: 'active' | 'inactive';
+  lastActive?: string;
+  token?: string;
+}
+
+export type StaffIssueType =
+  | 'Bus Breakdown'
+  | 'Engine Problem'
+  | 'Tyre Problem'
+  | 'Accident'
+  | 'Traffic Delay'
+  | 'Route Problem'
+  | 'GPS Problem'
+  | 'Mechanical Problem'
+  | 'Other';
+
+export type IssuePriority = 'Low' | 'Medium' | 'High' | 'Critical';
+
+export type IssueStatus = 'New' | 'Acknowledged' | 'In Progress' | 'Resolved' | 'Closed';
+
+export interface StaffIssueReport {
+  id: string;
+  staffId: string;
+  staffName: string;
+  busId: string;
+  busNumber: string;
+  routeId: string;
+  issueType: StaffIssueType;
+  description: string;
+  photoUrl?: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  priority: IssuePriority;
+  status: IssueStatus;
+  adminRemarks?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VoiceAnnouncement {
+  id: string;
+  routeId: string;
+  stopId: string;
+  stopName: string;
+  text: string;
+  textTamil?: string;
+  language: 'en-IN' | 'ta-IN';
+  audioUrl?: string;
+  triggerDistanceMeters?: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  adminId: string;
+  adminName: string;
+  action: string;
+  target: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface SyncPayload {
+  buses: BusVehicle[];
+  routes: BusRoute[];
+  stops: BusStop[];
+  announcements: VoiceAnnouncement[];
+  activeIssues: StaffIssueReport[];
+  systemHealth: {
+    status: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
+    activeBuses: number;
+    activeStaff: number;
+    lastSyncedAt: string;
+    sourceOfTruth: string;
+  };
+}

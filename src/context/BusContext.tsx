@@ -25,6 +25,8 @@ import {
   watchUserLocation,
   type GpsCoordinates,
 } from '../services/location';
+import { busApiService } from '../services/busApiService';
+import type { VoiceAnnouncement } from '../types/bus';
 
 interface BusContextType {
   // Navigation & Tab
@@ -50,6 +52,8 @@ interface BusContextType {
   // Route & Vehicles
   allRoutes: BusRoute[];
   allBuses: BusVehicle[];
+  announcements: VoiceAnnouncement[];
+  refreshFleetData: () => Promise<void>;
   selectedRoute: BusRoute;
   selectedBus: BusVehicle;
   selectBus: (busId: string) => void;
@@ -220,18 +224,61 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Routes & Vehicles
-  const allRoutes = BUS_ROUTES;
-  const allBuses = BUS_VEHICLES;
+  // Dynamic Routes & Vehicles from Centralized API
+  const [allRoutes, setAllRoutes] = useState<BusRoute[]>(() => {
+    const cached = busApiService.getCachedSync();
+    return cached.routes?.length ? cached.routes : BUS_ROUTES;
+  });
+
+  const [allBuses, setAllBuses] = useState<BusVehicle[]>(() => {
+    const cached = busApiService.getCachedSync();
+    return cached.buses?.length ? cached.buses : BUS_VEHICLES;
+  });
+
+  const [announcements, setAnnouncements] = useState<VoiceAnnouncement[]>(() => {
+    const cached = busApiService.getCachedSync();
+    return cached.announcements || [];
+  });
+
+  // Explicit refresh fleet data method
+  const refreshFleetData = useCallback(async () => {
+    try {
+      const sync = await busApiService.fetchSync(true);
+      if (sync.buses?.length) setAllBuses(sync.buses);
+      if (sync.routes?.length) setAllRoutes(sync.routes);
+      if (sync.announcements) setAnnouncements(sync.announcements);
+    } catch (_) {}
+  }, []);
+
+  // Automatic real-time fleet synchronization
+  useEffect(() => {
+    // Initial fetch from central API
+    refreshFleetData();
+
+    // Start background polling for updates
+    busApiService.startPeriodicPolling(3500);
+
+    // Subscribe to cross-tab / broadcast events
+    const unsub = busApiService.subscribeSync((payload) => {
+      if (payload.buses?.length) setAllBuses(payload.buses);
+      if (payload.routes?.length) setAllRoutes(payload.routes);
+      if (payload.announcements) setAnnouncements(payload.announcements);
+    });
+
+    return () => {
+      unsub();
+      busApiService.stopPeriodicPolling();
+    };
+  }, [refreshFleetData]);
 
   const [selectedBusId, setSelectedBusId] = useState<string>('bus-07');
   const selectedBus = useMemo(
-    () => allBuses.find((b) => b.id === selectedBusId) || allBuses[0],
+    () => allBuses.find((b) => b.id === selectedBusId) || allBuses[0] || BUS_VEHICLES[0],
     [allBuses, selectedBusId]
   );
 
   const selectedRoute = useMemo(
-    () => allRoutes.find((r) => r.id === selectedBus.routeId) || allRoutes[0],
+    () => allRoutes.find((r) => r.id === selectedBus.routeId) || allRoutes[0] || BUS_ROUTES[0],
     [allRoutes, selectedBus]
   );
 
@@ -468,7 +515,25 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            activeStopName.toLowerCase().includes(studentStop.shortName.toLowerCase()))
         );
 
-        if (tier === 'arrived' || tier === 'stop-arrived') {
+        // Check if there is an active admin-configured announcement for this stop
+        const matchingAnnouncement = announcements.find(
+          (a) =>
+            a.isActive &&
+            activeStopName &&
+            (a.stopName.toLowerCase().includes(activeStopName.toLowerCase()) ||
+              activeStopName.toLowerCase().includes(a.stopName.toLowerCase()))
+        );
+
+        if (matchingAnnouncement) {
+          if (tier === 'arrived' || tier === 'stop-arrived') {
+            sound.playArrivalChime();
+            sound.triggerHaptic([30, 50, 30]);
+          } else {
+            sound.playApproachingChime();
+            sound.triggerHaptic(20);
+          }
+          gracefulVoice.speakDirectly(matchingAnnouncement.text);
+        } else if (tier === 'arrived' || tier === 'stop-arrived') {
           sound.playArrivalChime();
           sound.triggerHaptic([30, 50, 30]);
           gracefulVoice.announceStopMilestone(
@@ -499,7 +564,7 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
     },
-    [selectedBus.busNumber, studentStop.name, studentStop.shortName]
+    [selectedBus.busNumber, studentStop.name, studentStop.shortName, announcements]
   );
 
   // Listen to Driver Phone GPS via Firebase RTDB or local broadcast
@@ -897,6 +962,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setVoiceSpeed,
         allRoutes,
         allBuses,
+        announcements,
+        refreshFleetData,
         selectedRoute,
         selectedBus,
         selectBus,

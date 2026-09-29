@@ -11,7 +11,10 @@ import {
   AlertTriangle,
   Sparkles,
   Radio,
+  ShieldCheck,
 } from 'lucide-react';
+import { isWebBrowser } from '../utils/platform';
+import { navigateToPortal } from '../routes/AppRouter';
 import { formatDistance } from '../utils/geo';
 import { EtaDisplay } from './EtaDisplay';
 
@@ -42,7 +45,6 @@ export const DesktopSidebar: React.FC = () => {
     setIsAiModalOpen,
     setIsApkModalOpen,
     setIsSosModalOpen,
-    setMode,
   } = useBus();
 
   return (
@@ -158,16 +160,34 @@ export const DesktopSidebar: React.FC = () => {
 
       {/* Bottom PC Quick Shortcuts */}
       <div className="mt-auto pt-4 border-t dark:border-white/10 border-slate-200 space-y-2">
-        <button
-          onClick={() => setMode('driver')}
-          className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold dark:bg-amber-500/10 bg-amber-50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-all shadow-sm"
-        >
-          <span className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-amber-500 dark:text-amber-400 animate-pulse" />
-            <span>Driver GPS Cockpit</span>
-          </span>
-          <ChevronRight className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-        </button>
+        {/* Web-Only Staff Portal & Admin Console Links */}
+        {isWebBrowser() && (
+          <>
+            <button
+              onClick={() => navigateToPortal('staff-login')}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold dark:bg-amber-500/10 bg-amber-50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-all shadow-sm cursor-pointer"
+              title="Bus Staff & Driver Operations Portal"
+            >
+              <span className="flex items-center gap-2">
+                <Radio className="w-4 h-4 text-amber-500 dark:text-amber-400 animate-pulse" />
+                <span>Staff & Driver Portal</span>
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            </button>
+
+            <button
+              onClick={() => navigateToPortal('admin-login')}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold dark:bg-cyan-500/10 bg-cyan-50 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-400/30 transition-all shadow-sm cursor-pointer"
+              title="DCE Fleet Administration Console"
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span>Admin Fleet Console</span>
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
+            </button>
+          </>
+        )}
         <button
           onClick={() => setIsAiModalOpen(true)}
           className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold dark:bg-cyan-500/10 bg-cyan-50 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-400/30 transition-all shadow-sm"

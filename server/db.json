@@ -1,0 +1,971 @@
+{
+  "admins": [
+    {
+      "id": "admin-01",
+      "email": "admin@dce.edu",
+      "name": "DCE Transport Administrator",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "role": "admin",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "staff": [
+    {
+      "id": "staff-01",
+      "name": "Muruganandam K.",
+      "email": "murugan@dce.edu",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "phone": "+91 94440 12894",
+      "role": "driver",
+      "assignedBusId": "bus-07",
+      "assignedRouteId": "route-07",
+      "status": "active",
+      "lastActive": "2026-09-29T08:30:00.000Z"
+    },
+    {
+      "id": "staff-02",
+      "name": "Senthil Kumar R.",
+      "email": "senthil@dce.edu",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "phone": "+91 94442 77410",
+      "role": "driver",
+      "assignedBusId": "bus-04",
+      "assignedRouteId": "route-04",
+      "status": "active",
+      "lastActive": "2026-09-29T08:25:00.000Z"
+    },
+    {
+      "id": "staff-03",
+      "name": "Paneerselvam M.",
+      "email": "paneer@dce.edu",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "phone": "+91 98840 33190",
+      "role": "driver",
+      "assignedBusId": "bus-01",
+      "assignedRouteId": "route-01",
+      "status": "active",
+      "lastActive": "2026-09-29T08:20:00.000Z"
+    },
+    {
+      "id": "staff-04",
+      "name": "Govindaraj V.",
+      "email": "govind@dce.edu",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "phone": "+91 98412 88921",
+      "role": "driver",
+      "assignedBusId": "bus-12",
+      "assignedRouteId": "route-12",
+      "status": "active",
+      "lastActive": "2026-09-29T08:15:00.000Z"
+    },
+    {
+      "id": "staff-05",
+      "name": "DCE Bus Staff Operations",
+      "email": "staff@dce.edu",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "phone": "+91 98400 11223",
+      "role": "driver",
+      "assignedBusId": "bus-07",
+      "assignedRouteId": "route-07",
+      "status": "active",
+      "lastActive": "2026-09-29T08:35:00.000Z"
+    }
+  ],
+  "buses": [
+    {
+      "id": "bus-07",
+      "busNumber": "DCE-BUS-07",
+      "plateNumber": "TN-11-AA-4521",
+      "routeId": "route-07",
+      "routeName": "Guindy ➔ Tambaram ➔ DCE Express",
+      "startingPoint": "Guindy Kathipara",
+      "destination": "DCE Campus, Manimangalam",
+      "assignedStaffId": "staff-01",
+      "driverName": "Muruganandam K.",
+      "driverPhone": "+91 94440 12894",
+      "driverRating": 4.9,
+      "busImage": "https://images.unsplash.com/photo-1618847791039-886c74c001ad?auto=format&fit=crop&q=80&w=800",
+      "capacity": 52,
+      "currentOccupancy": 36,
+      "hasAC": true,
+      "isLive": true,
+      "statusText": "Delayed (Updated by Staff)",
+      "operationalStatus": "Delayed",
+      "isActive": true,
+      "currentLat": 12.9249,
+      "currentLng": 80.1165,
+      "currentSpeed": 38,
+      "lastUpdated": "2026-09-29T06:16:09.733Z"
+    },
+    {
+      "id": "bus-04",
+      "busNumber": "DCE-BUS-04",
+      "plateNumber": "TN-11-AB-1903",
+      "routeId": "route-04",
+      "routeName": "Chromepet ➔ Perungalathur ➔ DCE",
+      "startingPoint": "Chromepet MIT Gate",
+      "destination": "DCE Campus, Manimangalam",
+      "assignedStaffId": "staff-02",
+      "driverName": "Senthil Kumar R.",
+      "driverPhone": "+91 94442 77410",
+      "driverRating": 4.8,
+      "busImage": "https://images.unsplash.com/photo-1706017272776-89e19de79a97?auto=format&fit=crop&q=80&w=800",
+      "capacity": 48,
+      "currentOccupancy": 39,
+      "hasAC": true,
+      "isLive": true,
+      "statusText": "Moving via Perungalathur",
+      "operationalStatus": "In Service",
+      "isActive": true,
+      "currentLat": 12.905,
+      "currentLng": 80.093,
+      "currentSpeed": 42,
+      "lastUpdated": "2026-09-29T10:49:00.000Z"
+    },
+    {
+      "id": "bus-01",
+      "busNumber": "DCE-BUS-01",
+      "plateNumber": "TN-11-AC-8812",
+      "routeId": "route-01",
+      "routeName": "Tambaram West ➔ DCE Campus",
+      "startingPoint": "Tambaram Sanatorium",
+      "destination": "DCE Campus, Manimangalam",
+      "assignedStaffId": "staff-03",
+      "driverName": "Paneerselvam M.",
+      "driverPhone": "+91 98840 33190",
+      "driverRating": 4.9,
+      "busImage": "https://images.unsplash.com/photo-1550523049-a61d0deec4a4?auto=format&fit=crop&q=80&w=800",
+      "capacity": 45,
+      "currentOccupancy": 28,
+      "hasAC": false,
+      "isLive": true,
+      "statusText": "Approaching Mudichur",
+      "operationalStatus": "In Service",
+      "isActive": true,
+      "currentLat": 12.915,
+      "currentLng": 80.082,
+      "currentSpeed": 35,
+      "lastUpdated": "2026-09-29T10:48:30.000Z"
+    },
+    {
+      "id": "bus-12",
+      "busNumber": "DCE-BUS-12",
+      "plateNumber": "TN-11-AD-5561",
+      "routeId": "route-12",
+      "routeName": "Koyambedu ➔ Porur ➔ Kundrathur ➔ DCE",
+      "startingPoint": "Koyambedu CMBT",
+      "destination": "DCE Campus, Manimangalam",
+      "assignedStaffId": "staff-04",
+      "driverName": "Govindaraj V.",
+      "driverPhone": "+91 98412 88921",
+      "driverRating": 4.7,
+      "busImage": "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&q=80&w=800",
+      "capacity": 52,
+      "currentOccupancy": 44,
+      "hasAC": true,
+      "isLive": true,
+      "statusText": "Crossing Kundrathur",
+      "operationalStatus": "In Service",
+      "isActive": true,
+      "currentLat": 12.998,
+      "currentLng": 80.097,
+      "currentSpeed": 40,
+      "lastUpdated": "2026-09-29T10:48:00.000Z"
+    },
+    {
+      "id": "bus-dce05",
+      "busNumber": "DCE-05",
+      "plateNumber": "TN 11 AZ 4005",
+      "routeId": "route-25",
+      "routeName": "DCE Express",
+      "startingPoint": "Tambaram",
+      "destination": "DCE Campus",
+      "assignedStaffId": "staff-01",
+      "driverName": "R. Venkatesh",
+      "driverPhone": "+91 98401 23456",
+      "driverRating": 4.8,
+      "busImage": "https://images.unsplash.com/photo-1618847791039-886c74c001ad?auto=format&fit=crop&q=80&w=800",
+      "capacity": 54,
+      "currentOccupancy": 0,
+      "hasAC": false,
+      "isLive": true,
+      "statusText": "In Service (Active)",
+      "operationalStatus": "On Route",
+      "isActive": true,
+      "currentLat": 12.9249,
+      "currentLng": 80.1165,
+      "currentSpeed": 0,
+      "lastUpdated": "2026-09-29T06:16:09.720Z"
+    }
+  ],
+  "routes": [
+    {
+      "id": "route-07",
+      "name": "Guindy ➔ Tambaram ➔ DCE Express",
+      "code": "R-07",
+      "routeNumber": "21",
+      "origin": "Guindy Kathipara",
+      "destination": "DCE Campus, Manimangalam",
+      "startingPoint": "Guindy Kathipara",
+      "description": "Express transit line linking Central South Chennai hubs directly to Dhanalakshmi College of Engineering Campus.",
+      "totalDistanceKm": 18.2,
+      "estimatedTotalMinutes": 42,
+      "assignedBusIds": [
+        "bus-07"
+      ],
+      "stops": [
+        {
+          "id": "stop-07-1",
+          "name": "Guindy Kathipara Junction",
+          "shortName": "Guindy",
+          "lat": 13.0067,
+          "lng": 80.2026,
+          "sequence": 1,
+          "scheduledTime": "07:15 AM",
+          "studentsWaiting": 22,
+          "isTerminal": true,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-07-2",
+          "name": "Pallavaram Bus Stop",
+          "shortName": "Pallavaram",
+          "lat": 12.9675,
+          "lng": 80.1491,
+          "sequence": 2,
+          "scheduledTime": "07:28 AM",
+          "studentsWaiting": 18,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-07-3",
+          "name": "Tambaram West Stand",
+          "shortName": "Tambaram West",
+          "lat": 12.9249,
+          "lng": 80.1165,
+          "sequence": 3,
+          "scheduledTime": "07:45 AM",
+          "studentsWaiting": 35,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-07-4",
+          "name": "Mudichur Road Junction",
+          "shortName": "Mudichur",
+          "lat": 12.915,
+          "lng": 80.082,
+          "sequence": 4,
+          "scheduledTime": "07:55 AM",
+          "studentsWaiting": 14,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-07-5",
+          "name": "Varadharajapuram Gate",
+          "shortName": "Varadharajapuram",
+          "lat": 12.918,
+          "lng": 80.062,
+          "sequence": 5,
+          "scheduledTime": "08:03 AM",
+          "studentsWaiting": 8,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-07-6",
+          "name": "Dhanalakshmi College of Engineering (DCE)",
+          "shortName": "DCE Campus",
+          "lat": 12.9165,
+          "lng": 80.0435,
+          "sequence": 6,
+          "scheduledTime": "08:12 AM",
+          "studentsWaiting": 0,
+          "isTerminal": true,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-1790662544696",
+          "name": "Tambaram Sanatorium Flyover",
+          "shortName": "Tambaram",
+          "lat": 12.9372,
+          "lng": 80.1285,
+          "sequence": 7,
+          "scheduledTime": "07:35 AM",
+          "studentsWaiting": 0,
+          "isTerminal": false,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-1790662569725",
+          "name": "Tambaram Sanatorium Flyover",
+          "shortName": "Tambaram",
+          "lat": 12.9372,
+          "lng": 80.1285,
+          "sequence": 8,
+          "scheduledTime": "07:35 AM",
+          "studentsWaiting": 0,
+          "isTerminal": false,
+          "routeId": "route-07",
+          "isActive": true
+        }
+      ],
+      "waypoints": [
+        [
+          13.0067,
+          80.2026
+        ],
+        [
+          12.985,
+          80.178
+        ],
+        [
+          12.9675,
+          80.1491
+        ],
+        [
+          12.9516,
+          80.1462
+        ],
+        [
+          12.936,
+          80.128
+        ],
+        [
+          12.9249,
+          80.1165
+        ],
+        [
+          12.915,
+          80.082
+        ],
+        [
+          12.918,
+          80.062
+        ],
+        [
+          12.9165,
+          80.0435
+        ],
+        [
+          12.9372,
+          80.1285
+        ],
+        [
+          12.9372,
+          80.1285
+        ]
+      ]
+    },
+    {
+      "id": "route-04",
+      "name": "Chromepet ➔ Perungalathur ➔ DCE",
+      "code": "R-04",
+      "routeNumber": "18",
+      "origin": "Chromepet MIT Gate",
+      "destination": "DCE Campus, Manimangalam",
+      "startingPoint": "Chromepet MIT Gate",
+      "description": "Connecting Chromepet, Tambaram bypass, and Perungalathur tech corridors to DCE campus.",
+      "totalDistanceKm": 16.4,
+      "estimatedTotalMinutes": 38,
+      "assignedBusIds": [
+        "bus-04"
+      ],
+      "stops": [
+        {
+          "id": "stop-04-1",
+          "name": "Chromepet MIT Gate",
+          "shortName": "Chromepet",
+          "lat": 12.9516,
+          "lng": 80.1462,
+          "sequence": 1,
+          "scheduledTime": "07:20 AM",
+          "studentsWaiting": 19,
+          "isTerminal": true,
+          "routeId": "route-04",
+          "isActive": true
+        },
+        {
+          "id": "stop-04-2",
+          "name": "Perungalathur Junction",
+          "shortName": "Perungalathur",
+          "lat": 12.905,
+          "lng": 80.093,
+          "sequence": 2,
+          "scheduledTime": "07:42 AM",
+          "studentsWaiting": 26,
+          "routeId": "route-04",
+          "isActive": true
+        },
+        {
+          "id": "stop-04-3",
+          "name": "Mudichur Koot Road",
+          "shortName": "Mudichur Koot Rd",
+          "lat": 12.912,
+          "lng": 80.075,
+          "sequence": 3,
+          "scheduledTime": "07:54 AM",
+          "studentsWaiting": 12,
+          "routeId": "route-04",
+          "isActive": true
+        },
+        {
+          "id": "stop-04-4",
+          "name": "Dhanalakshmi College of Engineering (DCE)",
+          "shortName": "DCE Campus",
+          "lat": 12.9165,
+          "lng": 80.0435,
+          "sequence": 4,
+          "scheduledTime": "08:10 AM",
+          "studentsWaiting": 0,
+          "isTerminal": true,
+          "routeId": "route-04",
+          "isActive": true
+        }
+      ],
+      "waypoints": [
+        [
+          12.9516,
+          80.1462
+        ],
+        [
+          12.936,
+          80.128
+        ],
+        [
+          12.9249,
+          80.1165
+        ],
+        [
+          12.905,
+          80.093
+        ],
+        [
+          12.912,
+          80.075
+        ],
+        [
+          12.9165,
+          80.0435
+        ]
+      ]
+    },
+    {
+      "id": "route-01",
+      "name": "Tambaram West ➔ DCE Campus",
+      "code": "R-01",
+      "routeNumber": "05",
+      "origin": "Tambaram Sanatorium",
+      "destination": "DCE Campus, Manimangalam",
+      "startingPoint": "Tambaram Sanatorium",
+      "description": "Fast shuttle between Tambaram West hub and Manimangalam College gates.",
+      "totalDistanceKm": 11.8,
+      "estimatedTotalMinutes": 26,
+      "assignedBusIds": [
+        "bus-01"
+      ],
+      "stops": [
+        {
+          "id": "stop-01-1",
+          "name": "Tambaram Sanatorium Stand",
+          "shortName": "Sanatorium",
+          "lat": 12.936,
+          "lng": 80.128,
+          "sequence": 1,
+          "scheduledTime": "07:30 AM",
+          "studentsWaiting": 15,
+          "isTerminal": true,
+          "routeId": "route-01",
+          "isActive": true
+        },
+        {
+          "id": "stop-01-2",
+          "name": "Tambaram West Market",
+          "shortName": "Tambaram West",
+          "lat": 12.9249,
+          "lng": 80.1165,
+          "sequence": 2,
+          "scheduledTime": "07:40 AM",
+          "studentsWaiting": 31,
+          "routeId": "route-01",
+          "isActive": true
+        },
+        {
+          "id": "stop-01-3",
+          "name": "Manimangalam Koot Road",
+          "shortName": "Manimangalam Rd",
+          "lat": 12.917,
+          "lng": 80.06,
+          "sequence": 3,
+          "scheduledTime": "07:58 AM",
+          "studentsWaiting": 11,
+          "routeId": "route-01",
+          "isActive": true
+        },
+        {
+          "id": "stop-01-4",
+          "name": "DCE Engineering Block",
+          "shortName": "DCE Campus",
+          "lat": 12.9165,
+          "lng": 80.0435,
+          "sequence": 4,
+          "scheduledTime": "08:08 AM",
+          "studentsWaiting": 0,
+          "isTerminal": true,
+          "routeId": "route-01",
+          "isActive": true
+        }
+      ],
+      "waypoints": [
+        [
+          12.936,
+          80.128
+        ],
+        [
+          12.9249,
+          80.1165
+        ],
+        [
+          12.918,
+          80.095
+        ],
+        [
+          12.915,
+          80.082
+        ],
+        [
+          12.917,
+          80.06
+        ],
+        [
+          12.9165,
+          80.0435
+        ]
+      ]
+    },
+    {
+      "id": "route-12",
+      "name": "Koyambedu ➔ Porur ➔ Kundrathur ➔ DCE",
+      "code": "R-12",
+      "routeNumber": "32",
+      "origin": "Koyambedu CMBT",
+      "destination": "DCE Campus, Manimangalam",
+      "startingPoint": "Koyambedu CMBT",
+      "description": "Connecting West Chennai commuters from Koyambedu through Porur Tollgate and Kundrathur.",
+      "totalDistanceKm": 24.6,
+      "estimatedTotalMinutes": 52,
+      "assignedBusIds": [
+        "bus-12"
+      ],
+      "stops": [
+        {
+          "id": "stop-12-1",
+          "name": "Koyambedu CMBT",
+          "shortName": "Koyambedu",
+          "lat": 13.0694,
+          "lng": 80.1948,
+          "sequence": 1,
+          "scheduledTime": "07:05 AM",
+          "studentsWaiting": 31,
+          "isTerminal": true,
+          "routeId": "route-12",
+          "isActive": true
+        },
+        {
+          "id": "stop-12-2",
+          "name": "Porur Toll Gate",
+          "shortName": "Porur",
+          "lat": 13.0335,
+          "lng": 80.1583,
+          "sequence": 2,
+          "scheduledTime": "07:22 AM",
+          "studentsWaiting": 24,
+          "routeId": "route-12",
+          "isActive": true
+        },
+        {
+          "id": "stop-12-3",
+          "name": "Kundrathur Murugan Koot Road",
+          "shortName": "Kundrathur",
+          "lat": 12.998,
+          "lng": 80.097,
+          "sequence": 3,
+          "scheduledTime": "07:38 AM",
+          "studentsWaiting": 17,
+          "routeId": "route-12",
+          "isActive": true
+        },
+        {
+          "id": "stop-12-4",
+          "name": "Somangalam Junction",
+          "shortName": "Somangalam",
+          "lat": 12.955,
+          "lng": 80.07,
+          "sequence": 4,
+          "scheduledTime": "07:51 AM",
+          "studentsWaiting": 9,
+          "routeId": "route-12",
+          "isActive": true
+        },
+        {
+          "id": "stop-12-5",
+          "name": "Dhanalakshmi College of Engg (DCE)",
+          "shortName": "DCE Campus",
+          "lat": 12.9165,
+          "lng": 80.0435,
+          "sequence": 5,
+          "scheduledTime": "08:08 AM",
+          "studentsWaiting": 0,
+          "isTerminal": true,
+          "routeId": "route-12",
+          "isActive": true
+        }
+      ],
+      "waypoints": [
+        [
+          13.0694,
+          80.1948
+        ],
+        [
+          13.0335,
+          80.1583
+        ],
+        [
+          12.998,
+          80.097
+        ],
+        [
+          12.955,
+          80.07
+        ],
+        [
+          12.9165,
+          80.0435
+        ]
+      ]
+    }
+  ],
+  "voice_announcements": [
+    {
+      "id": "va-01",
+      "routeId": "route-07",
+      "stopId": "stop-07-3",
+      "stopName": "Tambaram West Stand",
+      "text": "Attention passengers, the next stop is Tambaram West Stand. Please prepare to alight.",
+      "textTamil": "கவனிக்கவும், அடுத்த நிறுத்தம் தாம்பரம் மேற்கு பேருந்து நிலையம். இறங்க தயாராக இருக்கவும்.",
+      "language": "en-IN",
+      "triggerDistanceMeters": 350,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-02",
+      "routeId": "route-07",
+      "stopId": "stop-07-2",
+      "stopName": "Pallavaram Bus Stop",
+      "text": "The next stop is Pallavaram. Students waiting please be ready.",
+      "textTamil": "அடுத்த நிறுத்தம் பல்லாவரம். மாணவர்கள் தயாராக இருக்கவும்.",
+      "language": "en-IN",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-03",
+      "routeId": "route-07",
+      "stopId": "stop-07-4",
+      "stopName": "Mudichur Road Junction",
+      "text": "Approaching Mudichur Road Junction. Watch your step while deboarding.",
+      "textTamil": "முடிச்சூர் சாலை சந்திப்பை அடைகிறது. கவனமாக இறங்கவும்.",
+      "language": "en-IN",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-04",
+      "routeId": "route-07",
+      "stopId": "stop-07-6",
+      "stopName": "Dhanalakshmi College of Engineering (DCE)",
+      "text": "The bus has arrived at Dhanalakshmi College of Engineering (DCE) Campus. Have a great day of learning!",
+      "textTamil": "பேருந்து தனலட்சுமி பொறியியல் கல்லூரி வளாகத்தை அடைந்துள்ளது. அனைவருக்கும் நல்வாழ்த்துகள்!",
+      "language": "en-IN",
+      "triggerDistanceMeters": 250,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-05",
+      "routeId": "route-04",
+      "stopId": "stop-04-2",
+      "stopName": "Perungalathur Junction",
+      "text": "The next stop is Perungalathur Junction. Boarding for DCE engineering blocks.",
+      "textTamil": "அடுத்த நிறுத்தம் பெருங்களத்தூர் சந்திப்பு.",
+      "language": "en-IN",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-06",
+      "routeId": "route-12",
+      "stopId": "stop-12-2",
+      "stopName": "Porur Toll Gate",
+      "text": "The next stop is Porur Toll Gate. Next stop Kundrathur.",
+      "textTamil": "அடுத்த நிறுத்தம் போரூர் சுங்கச்சாவடி.",
+      "language": "en-IN",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:00:00.000Z"
+    },
+    {
+      "id": "va-1790662544699",
+      "routeId": "route-25",
+      "stopId": "stop-07-3",
+      "stopName": "Tambaram Sanatorium Flyover",
+      "text": "Approaching Tambaram Sanatorium. Please prepare to deboard.",
+      "textTamil": "",
+      "language": "en-IN",
+      "audioUrl": "",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T06:15:44.699Z"
+    },
+    {
+      "id": "va-1790662569728",
+      "routeId": "route-25",
+      "stopId": "stop-07-3",
+      "stopName": "Tambaram Sanatorium Flyover",
+      "text": "Approaching Tambaram Sanatorium. Please prepare to deboard.",
+      "textTamil": "",
+      "language": "en-IN",
+      "audioUrl": "",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T06:16:09.728Z"
+    }
+  ],
+  "issue_reports": [
+    {
+      "id": "issue-1790662569737",
+      "staffId": "staff-01",
+      "staffName": "Bus Driver",
+      "busId": "bus-07",
+      "busNumber": "DCE-07",
+      "routeId": "route-07",
+      "issueType": "Traffic Congestion",
+      "description": "Stuck at Chromepet signal for 25 mins",
+      "photoUrl": "",
+      "location": "Chromepet GST Flyover",
+      "priority": "High",
+      "status": "Resolved",
+      "adminRemarks": "Alternative bypass via 200ft Radial Road communicated to driver.",
+      "createdAt": "2026-09-29T06:16:09.737Z",
+      "updatedAt": "2026-09-29T06:16:09.740Z"
+    },
+    {
+      "id": "issue-1790662544709",
+      "staffId": "staff-01",
+      "staffName": "Bus Driver",
+      "busId": "bus-07",
+      "busNumber": "DCE-07",
+      "routeId": "route-07",
+      "issueType": "Traffic Congestion",
+      "description": "Stuck at Chromepet signal for 25 mins",
+      "photoUrl": "",
+      "location": "Chromepet GST Flyover",
+      "priority": "High",
+      "status": "Resolved",
+      "adminRemarks": "Alternative bypass via 200ft Radial Road communicated to driver.",
+      "createdAt": "2026-09-29T06:15:44.709Z",
+      "updatedAt": "2026-09-29T06:15:44.711Z"
+    },
+    {
+      "id": "issue-101",
+      "staffId": "staff-01",
+      "staffName": "Muruganandam K.",
+      "busId": "bus-07",
+      "busNumber": "DCE-BUS-07",
+      "routeId": "route-07",
+      "issueType": "Traffic Delay",
+      "description": "Heavy traffic gridlock along GST Road near Tambaram flyover due to metro construction work. Estimated 10-minute delay.",
+      "location": "Tambaram Flyover, GST Road (12.9249, 80.1165)",
+      "latitude": 12.9249,
+      "longitude": 80.1165,
+      "priority": "Medium",
+      "status": "In Progress",
+      "adminRemarks": "Transport desk informed student helpline.",
+      "createdAt": "2026-09-29T07:48:00.000Z",
+      "updatedAt": "2026-09-29T07:55:00.000Z"
+    },
+    {
+      "id": "issue-102",
+      "staffId": "staff-03",
+      "staffName": "Paneerselvam M.",
+      "busId": "bus-01",
+      "busNumber": "DCE-BUS-01",
+      "routeId": "route-01",
+      "issueType": "Mechanical Problem",
+      "description": "Rear tyre air pressure low warning indicator active near Kishkinta bypass road.",
+      "location": "Kishkinta Road, near Mudichur (12.9180, 80.0950)",
+      "latitude": 12.918,
+      "longitude": 80.095,
+      "priority": "High",
+      "status": "Resolved",
+      "adminRemarks": "Tyre serviced at campus workshop. Vehicle cleared for transit.",
+      "createdAt": "2026-09-28T16:20:00.000Z",
+      "updatedAt": "2026-09-28T17:10:00.000Z"
+    }
+  ],
+  "activity_logs": [
+    {
+      "id": "log-1790662569741",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-07",
+      "details": "Updated issue issue-1790662569737 status to 'Resolved' with remarks: \"Alternative bypass via 200ft Radial Road communicated to driver.\"",
+      "timestamp": "2026-09-29T06:16:09.741Z"
+    },
+    {
+      "id": "log-1790662569738",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_FILED",
+      "target": "DCE-07",
+      "details": "Staff reported Traffic Congestion: Stuck at Chromepet signal for 25 mins",
+      "timestamp": "2026-09-29T06:16:09.738Z"
+    },
+    {
+      "id": "log-1790662569729",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ANNOUNCEMENT_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Configured voice announcement for Tambaram Sanatorium Flyover: \"Approaching Tambaram Sanatorium. Please ...\"",
+      "timestamp": "2026-09-29T06:16:09.729Z"
+    },
+    {
+      "id": "log-1790662569726",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "STOP_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Added bus stop 'Tambaram Sanatorium Flyover' at [12.9372, 80.1285] on route Guindy ➔ Tambaram ➔ DCE Express",
+      "timestamp": "2026-09-29T06:16:09.726Z"
+    },
+    {
+      "id": "log-1790662569721",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "BUS_ADDED",
+      "target": "DCE-05",
+      "details": "Added new bus DCE-05 assigned to route DCE Express",
+      "timestamp": "2026-09-29T06:16:09.721Z"
+    },
+    {
+      "id": "log-1790662569712",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T06:16:09.712Z"
+    },
+    {
+      "id": "log-1790662544712",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-07",
+      "details": "Updated issue issue-1790662544709 status to 'Resolved' with remarks: \"Alternative bypass via 200ft Radial Road communicated to driver.\"",
+      "timestamp": "2026-09-29T06:15:44.712Z"
+    },
+    {
+      "id": "log-1790662544710",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_FILED",
+      "target": "DCE-07",
+      "details": "Staff reported Traffic Congestion: Stuck at Chromepet signal for 25 mins",
+      "timestamp": "2026-09-29T06:15:44.710Z"
+    },
+    {
+      "id": "log-1790662544699",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ANNOUNCEMENT_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Configured voice announcement for Tambaram Sanatorium Flyover: \"Approaching Tambaram Sanatorium. Please ...\"",
+      "timestamp": "2026-09-29T06:15:44.699Z"
+    },
+    {
+      "id": "log-1790662544697",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "STOP_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Added bus stop 'Tambaram Sanatorium Flyover' at [12.9372, 80.1285] on route Guindy ➔ Tambaram ➔ DCE Express",
+      "timestamp": "2026-09-29T06:15:44.697Z"
+    },
+    {
+      "id": "log-1790662544692",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "BUS_ADDED",
+      "target": "DCE-05",
+      "details": "Added new bus DCE-05 assigned to route DCE Express",
+      "timestamp": "2026-09-29T06:15:44.692Z"
+    },
+    {
+      "id": "log-1790662544682",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T06:15:44.682Z"
+    },
+    {
+      "id": "log-1790662347633",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "BUS_ADDED",
+      "target": "DCE-05",
+      "details": "Added new bus DCE-05 assigned to route DCE Express",
+      "timestamp": "2026-09-29T06:12:27.633Z"
+    },
+    {
+      "id": "log-1790662347622",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T06:12:27.622Z"
+    },
+    {
+      "id": "log-001",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "SYSTEM_INITIALIZED",
+      "target": "Fleet Database",
+      "details": "Centralized single-source-of-truth transit database initialized with 4 primary routes and 4 active buses.",
+      "timestamp": "2026-09-29T07:00:00.000Z"
+    },
+    {
+      "id": "log-002",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "STAFF_ASSIGNED",
+      "target": "DCE-BUS-07",
+      "details": "Assigned driver Muruganandam K. (staff-01) to Route 21 Guindy Express.",
+      "timestamp": "2026-09-29T07:15:00.000Z"
+    }
+  ]
+}

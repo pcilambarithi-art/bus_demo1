@@ -560,6 +560,11 @@ class TransitVoiceSynthesizer {
     this.speak(message);
   }
 
+  public speakDirectly(text: string) {
+    if (!text) return;
+    this.speak(text);
+  }
+
   public testVoice(voiceId?: VoiceAssistantId, speed?: VoiceSpeed) {
     const id = voiceId || this.currentVoiceId;
     const profile = VOICE_PROFILES[id] || VOICE_PROFILES.demodokos;

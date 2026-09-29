@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.mjs",
     "build": "tsc -b && vite build",
     "sync:android": "npm run build && npx cap sync android",
     "open:android": "npx cap open android",
