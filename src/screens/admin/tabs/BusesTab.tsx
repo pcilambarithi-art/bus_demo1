@@ -23,6 +23,7 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
   const [formData, setFormData] = useState({
     busNumber: '',
     plateNumber: '',
+    busImage: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800',
     routeId: '',
     routeName: '',
     startingPoint: '',
@@ -31,7 +32,6 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
     driverName: '',
     driverPhone: '',
     capacity: 50,
-    hasAC: true,
     operationalStatus: 'In Service' as BusVehicle['operationalStatus'],
     isActive: true,
   });
@@ -45,6 +45,7 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
     setFormData({
       busNumber: `DCE-${String(buses.length + 1).padStart(2, '0')}`,
       plateNumber: `TN-11-DCE-${Math.floor(1000 + Math.random() * 9000)}`,
+      busImage: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800',
       routeId: defaultRoute?.id || 'route-07',
       routeName: defaultRoute?.name || 'Guindy ➔ DCE Express',
       startingPoint: defaultRoute?.origin || 'Guindy Kathipara',
@@ -53,7 +54,6 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
       driverName: defaultStaff?.name || 'Muruganandam K.',
       driverPhone: defaultStaff?.phone || '+91 94440 12894',
       capacity: 52,
-      hasAC: true,
       operationalStatus: 'In Service',
       isActive: true,
     });
@@ -66,6 +66,7 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
     setFormData({
       busNumber: bus.busNumber,
       plateNumber: bus.plateNumber,
+      busImage: bus.busImage || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800',
       routeId: bus.routeId,
       routeName: bus.routeName || '',
       startingPoint: bus.startingPoint || '',
@@ -74,7 +75,6 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
       driverName: bus.driverName,
       driverPhone: bus.driverPhone,
       capacity: bus.capacity,
-      hasAC: bus.hasAC,
       operationalStatus: bus.operationalStatus || 'In Service',
       isActive: bus.isActive !== undefined ? bus.isActive : true,
     });
@@ -247,7 +247,7 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
                 <th className="p-3.5">Bus Identifier</th>
                 <th className="p-3.5">Route Information</th>
                 <th className="p-3.5">Assigned Staff</th>
-                <th className="p-3.5">Capacity & AC</th>
+                <th className="p-3.5">Capacity</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Telemetry Coordinates</th>
                 <th className="p-3.5 text-right">Actions</th>
@@ -264,8 +264,26 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
                 filteredBuses.map((bus) => (
                   <tr key={bus.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5">
-                      <div className="font-extrabold text-sm text-cyan-400">{bus.busNumber}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{bus.plateNumber}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0 flex items-center justify-center">
+                          {bus.busImage ? (
+                            <img
+                              src={bus.busImage}
+                              alt={bus.busNumber}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span className="text-sm">🚌</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-extrabold text-sm text-cyan-400">{bus.busNumber}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{bus.plateNumber}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-3.5 text-slate-300">
                       <div className="font-semibold text-white truncate max-w-[200px]">
@@ -280,14 +298,7 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
                       <div className="text-[10px] text-slate-400">{bus.driverPhone}</div>
                     </td>
                     <td className="p-3.5 text-slate-300">
-                      <div className="flex items-center gap-1.5">
-                        <span>{bus.capacity} Seats</span>
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                          bus.hasAC ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-500/20 text-slate-400'
-                        }`}>
-                          {bus.hasAC ? 'AC' : 'Non-AC'}
-                        </span>
-                      </div>
+                      <div className="font-semibold text-white">{bus.capacity} Seats</div>
                       <div className="text-[10px] text-slate-400">{bus.currentOccupancy || 0} Occupied</div>
                     </td>
                     <td className="p-3.5">
@@ -468,17 +479,61 @@ export const BusesTab: React.FC<BusesTabProps> = ({ buses, routes, staffList, on
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
-                  <input
-                    type="checkbox"
-                    checked={formData.hasAC}
-                    onChange={(e) => setFormData({ ...formData, hasAC: e.target.checked })}
-                    className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-400"
-                  />
-                  <span>Equipped with Air Conditioning (AC)</span>
+              {/* Bus Photo URL & Quick Presets */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Bus Photo URL / Image
                 </label>
+                <div className="flex gap-3 items-center mb-2">
+                  <div className="w-16 h-12 rounded-xl bg-slate-900 border border-white/15 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {formData.busImage ? (
+                      <img
+                        src={formData.busImage}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-xl">🚌</span>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.busImage || ''}
+                    onChange={(e) => setFormData({ ...formData, busImage: e.target.value })}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-white text-xs placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                  <span className="font-semibold text-slate-300">Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, busImage: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800' })}
+                    className="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10 transition-colors"
+                  >
+                    🚌 Yellow Campus Bus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, busImage: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&q=80&w=800' })}
+                    className="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10 transition-colors"
+                  >
+                    🚍 Express Coach
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, busImage: 'https://images.unsplash.com/photo-1618847791039-886c74c001ad?auto=format&fit=crop&q=80&w=800' })}
+                    className="px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10 transition-colors"
+                  >
+                    🚐 DCE Modern Liner
+                  </button>
+                </div>
+              </div>
 
+              <div className="flex items-center gap-6 pt-2">
                 <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
                   <input
                     type="checkbox"

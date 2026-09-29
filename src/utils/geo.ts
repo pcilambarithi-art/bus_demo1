@@ -84,3 +84,24 @@ export function interpolateBearing(fromAngle: number, toAngle: number, t: number
   if (diff < -180) diff += 360;
   return (fromAngle + diff * t + 360) % 360;
 }
+
+/**
+ * Generates continuous smooth intermediate waypoints between key corner anchors
+ * creating realistic, calm transit bus movement along road geometries.
+ */
+export function generateSmoothPath(anchors: [number, number][], stepsPerSegment: number = 25): [number, number][] {
+  if (!anchors || anchors.length === 0) return [];
+  if (anchors.length === 1) return anchors;
+  const result: [number, number][] = [];
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const start = anchors[i];
+    const end = anchors[i + 1];
+    for (let step = 0; step < stepsPerSegment; step++) {
+      const t = step / stepsPerSegment;
+      result.push(interpolateCoord(start, end, t));
+    }
+  }
+  result.push(anchors[anchors.length - 1]);
+  return result;
+}
+

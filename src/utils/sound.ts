@@ -193,7 +193,11 @@ class MobilityAudioSystem {
   public triggerHaptic(pattern: number | number[] = 15) {
     try {
       if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(pattern);
+        // Modern browsers require prior user activation before vibrating
+        const nav = navigator as any;
+        if (!nav.userActivation || nav.userActivation.hasBeenActive) {
+          navigator.vibrate(pattern);
+        }
       }
     } catch {
       // Haptics unavailable

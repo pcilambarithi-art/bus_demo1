@@ -15,7 +15,7 @@ import type {
   VoiceSpeed,
 } from '../types/bus';
 import { BUS_ROUTES, BUS_VEHICLES, DEFAULT_STUDENT } from '../data/busRoutes';
-import { calculateDistanceMeters, calculateBearing } from '../utils/geo';
+import { calculateDistanceMeters, calculateBearing, generateSmoothPath } from '../utils/geo';
 import { sound } from '../utils/sound';
 import { subscribeBusGps, type DriverGpsPayload } from '../services/firebase';
 import { gracefulVoice } from '../services/speechSynthesis';
@@ -281,6 +281,16 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     () => allRoutes.find((r) => r.id === selectedBus.routeId) || allRoutes[0] || BUS_ROUTES[0],
     [allRoutes, selectedBus]
   );
+
+  // Ensure route has continuous smooth waypoints for calm, realistic movement
+  const routeWaypoints = useMemo(() => {
+    const raw = selectedRoute?.waypoints || [];
+    if (raw.length < 35 && raw.length > 1) {
+      return generateSmoothPath(raw, 25);
+    }
+    return raw;
+  }, [selectedRoute]);
+
 
   // Authentication & Session
   const STORAGE_KEY_AUTH = 'dce_bus_tracker_auth_user';
@@ -583,12 +593,13 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // If live GPS from Driver is active (within last 60s), use it directly!
     const isLive = liveDriverGps && (Date.now() - liveDriverGps.timestamp < 60000);
 
-    const waypoints = selectedRoute.waypoints;
+    const waypoints: [number, number][] = routeWaypoints.length ? routeWaypoints : (selectedRoute.waypoints.length ? selectedRoute.waypoints : [[12.9249, 80.1165], [12.9250, 80.1166]]);
     const idx = Math.min(Math.max(waypointIndex, 0), waypoints.length - 1);
+    const coord = waypoints[idx] || waypoints[0] || [12.9249, 80.1165];
     
     const currentCoord: [number, number] = isLive
       ? [liveDriverGps.latitude, liveDriverGps.longitude]
-      : (waypoints[idx] || waypoints[0]);
+      : [coord[0], coord[1]];
 
     // Bearing
     const nextIdx = Math.min(idx + 1, waypoints.length - 1);
@@ -633,23 +644,23 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       nextStop.lng
     );
 
-    // Speed calculation: from live driver GPS or realistic traffic
-    let speed = 34;
+    // Speed calculation: from live driver GPS or calm realistic city traffic
+    let speed = 25;
     if (isLive) {
       speed = Math.round(liveDriverGps.speed);
     } else {
       if (distToStudentStopMeters < 80 || distToNextStopMeters < 60) {
-        speed = 0; // stopped
+        speed = 0; // stopped at transit station for boarding
       } else if (distToStudentStopMeters < 250 || distToNextStopMeters < 200) {
-        speed = 18; // slowing down
+        speed = 12; // smoothly slowing down on approach
       } else {
-        const wobble = Math.sin(idx * 0.3) * 6;
-        speed = Math.round(34 + wobble);
+        const wobble = Math.sin(idx * 0.25) * 4;
+        speed = Math.round(24 + wobble); // calm, realistic city bus speed 20-28 km/h
       }
     }
 
-    // ETA calculation
-    let etaMinutes = Math.max(1, Math.round(distToStudentStopMeters / 400));
+    // ETA calculation: realistic transit pace
+    let etaMinutes = Math.max(1, Math.round(distToStudentStopMeters / 350));
     if (distToStudentStopMeters <= 50) {
       etaMinutes = 0;
     }
@@ -681,7 +692,7 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status,
       lastUpdated: isLive ? 'Live Driver GPS' : 'Just now',
     };
-  }, [selectedRoute, waypointIndex, studentStop, student.lat, student.lng, liveDriverGps]);
+  }, [selectedRoute, routeWaypoints, waypointIndex, studentStop, student.lat, student.lng, liveDriverGps]);
 
   // Native Browser Notification Permission Request
   useEffect(() => {
@@ -695,13 +706,16 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Natural autonomous route progression loop & multi-bus proximity tracking
   useEffect(() => {
     const timer = setInterval(() => {
-      // 1. Advance waypoint for every fleet bus along its route
+      // 1. Advance waypoint for every fleet bus along its route at a calm, realistic pace
       allBuses.forEach((b) => {
         const r = allRoutes.find((route) => route.id === b.routeId);
         if (!r || !r.waypoints.length) return;
+        const totalWaypoints = r.waypoints.length < 35 && r.waypoints.length > 1
+          ? (r.waypoints.length - 1) * 25 + 1
+          : r.waypoints.length;
         const current = fleetProgressRef.current[b.id] ?? 0;
         let next = current + 1;
-        if (next >= r.waypoints.length) {
+        if (next >= totalWaypoints) {
           next = 0;
         }
         fleetProgressRef.current[b.id] = next;
@@ -715,9 +729,9 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const bus = selectedBus;
       const busRoute = selectedRoute;
 
-      if (bus && busRoute && busRoute.waypoints.length) {
-        const bIdx = fleetProgressRef.current[bus.id] ?? 0;
-        const busCoord = busRoute.waypoints[bIdx] || busRoute.waypoints[0];
+      if (bus && busRoute && routeWaypoints.length) {
+        const bIdx = Math.min(fleetProgressRef.current[bus.id] ?? 0, routeWaypoints.length - 1);
+        const busCoord = routeWaypoints[bIdx] || routeWaypoints[0];
         const triggered = triggeredTiersRef.current;
 
         // --- A. Proximity to Student / User Location & Stop for the CHOSEN bus ---
@@ -831,10 +845,10 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         });
       }
-    }, 1100);
+    }, 3500);
 
     return () => clearInterval(timer);
-  }, [allBuses, allRoutes, selectedBus, student.assignedBusId, studentStop, triggerCustomAlert]);
+  }, [allBuses, allRoutes, selectedBus, routeWaypoints, student.assignedBusId, studentStop, triggerCustomAlert]);
 
   // Real Geolocation watcher
   const startLocationTracking = useCallback(() => {

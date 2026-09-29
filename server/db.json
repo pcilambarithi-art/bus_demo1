@@ -95,7 +95,7 @@
       "currentLat": 12.9249,
       "currentLng": 80.1165,
       "currentSpeed": 38,
-      "lastUpdated": "2026-09-29T06:32:05.621Z"
+      "lastUpdated": "2026-09-29T08:49:59.852Z"
     },
     {
       "id": "bus-04",
@@ -195,7 +195,7 @@
       "currentLat": 12.9249,
       "currentLng": 80.1165,
       "currentSpeed": 0,
-      "lastUpdated": "2026-09-29T06:32:05.606Z"
+      "lastUpdated": "2026-09-29T08:49:59.836Z"
     }
   ],
   "routes": [
@@ -326,6 +326,32 @@
           "isTerminal": false,
           "routeId": "route-07",
           "isActive": true
+        },
+        {
+          "id": "stop-1790669419021",
+          "name": "Tambaram Sanatorium Flyover",
+          "shortName": "Tambaram",
+          "lat": 12.9372,
+          "lng": 80.1285,
+          "sequence": 10,
+          "scheduledTime": "07:35 AM",
+          "studentsWaiting": 0,
+          "isTerminal": false,
+          "routeId": "route-07",
+          "isActive": true
+        },
+        {
+          "id": "stop-1790671799841",
+          "name": "Tambaram Sanatorium Flyover",
+          "shortName": "Tambaram",
+          "lat": 12.9372,
+          "lng": 80.1285,
+          "sequence": 11,
+          "scheduledTime": "07:35 AM",
+          "studentsWaiting": 0,
+          "isTerminal": false,
+          "routeId": "route-07",
+          "isActive": true
         }
       ],
       "waypoints": [
@@ -364,6 +390,14 @@
         [
           12.9165,
           80.0435
+        ],
+        [
+          12.9372,
+          80.1285
+        ],
+        [
+          12.9372,
+          80.1285
         ],
         [
           12.9372,
@@ -778,9 +812,69 @@
       "triggerDistanceMeters": 300,
       "isActive": true,
       "createdAt": "2026-09-29T06:32:05.616Z"
+    },
+    {
+      "id": "va-1790669419024",
+      "routeId": "route-25",
+      "stopId": "stop-07-3",
+      "stopName": "Tambaram Sanatorium Flyover",
+      "text": "Approaching Tambaram Sanatorium. Please prepare to deboard.",
+      "textTamil": "",
+      "language": "en-IN",
+      "audioUrl": "",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:10:19.024Z"
+    },
+    {
+      "id": "va-1790671799846",
+      "routeId": "route-25",
+      "stopId": "stop-07-3",
+      "stopName": "Tambaram Sanatorium Flyover",
+      "text": "Approaching Tambaram Sanatorium. Please prepare to deboard.",
+      "textTamil": "",
+      "language": "en-IN",
+      "audioUrl": "",
+      "triggerDistanceMeters": 300,
+      "isActive": true,
+      "createdAt": "2026-09-29T08:49:59.846Z"
     }
   ],
   "issue_reports": [
+    {
+      "id": "issue-1790671799856",
+      "staffId": "staff-01",
+      "staffName": "Bus Driver",
+      "busId": "bus-07",
+      "busNumber": "DCE-07",
+      "routeId": "route-07",
+      "issueType": "Traffic Congestion",
+      "description": "Stuck at Chromepet signal for 25 mins",
+      "photoUrl": "",
+      "location": "Chromepet GST Flyover",
+      "priority": "High",
+      "status": "Resolved",
+      "adminRemarks": "Alternative bypass via 200ft Radial Road communicated to driver.",
+      "createdAt": "2026-09-29T08:49:59.856Z",
+      "updatedAt": "2026-09-29T08:49:59.859Z"
+    },
+    {
+      "id": "issue-1790669419034",
+      "staffId": "staff-01",
+      "staffName": "Bus Driver",
+      "busId": "bus-07",
+      "busNumber": "DCE-07",
+      "routeId": "route-07",
+      "issueType": "Traffic Congestion",
+      "description": "Stuck at Chromepet signal for 25 mins",
+      "photoUrl": "",
+      "location": "Chromepet GST Flyover",
+      "priority": "High",
+      "status": "Resolved",
+      "adminRemarks": "Alternative bypass via 200ft Radial Road communicated to driver.",
+      "createdAt": "2026-09-29T08:10:19.034Z",
+      "updatedAt": "2026-09-29T08:10:19.036Z"
+    },
     {
       "id": "issue-1790663525625",
       "staffId": "staff-01",
@@ -848,7 +942,7 @@
       "status": "In Progress",
       "adminRemarks": "Transport desk informed student helpline.",
       "createdAt": "2026-09-29T07:48:00.000Z",
-      "updatedAt": "2026-09-29T07:55:00.000Z"
+      "updatedAt": "2026-09-29T08:13:35.900Z"
     },
     {
       "id": "issue-102",
@@ -870,6 +964,150 @@
     }
   ],
   "activity_logs": [
+    {
+      "id": "log-1790671799859",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-07",
+      "details": "Updated issue issue-1790671799856 status to 'Resolved' with remarks: \"Alternative bypass via 200ft Radial Road communicated to driver.\"",
+      "timestamp": "2026-09-29T08:49:59.859Z"
+    },
+    {
+      "id": "log-1790671799857",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_FILED",
+      "target": "DCE-07",
+      "details": "Staff reported Traffic Congestion: Stuck at Chromepet signal for 25 mins",
+      "timestamp": "2026-09-29T08:49:59.857Z"
+    },
+    {
+      "id": "log-1790671799847",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ANNOUNCEMENT_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Configured voice announcement for Tambaram Sanatorium Flyover: \"Approaching Tambaram Sanatorium. Please ...\"",
+      "timestamp": "2026-09-29T08:49:59.847Z"
+    },
+    {
+      "id": "log-1790671799842",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "STOP_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Added bus stop 'Tambaram Sanatorium Flyover' at [12.9372, 80.1285] on route Guindy ➔ Tambaram ➔ DCE Express",
+      "timestamp": "2026-09-29T08:49:59.842Z"
+    },
+    {
+      "id": "log-1790671799837",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "BUS_ADDED",
+      "target": "DCE-05",
+      "details": "Added new bus DCE-05 assigned to route DCE Express",
+      "timestamp": "2026-09-29T08:49:59.837Z"
+    },
+    {
+      "id": "log-1790671799827",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T08:49:59.827Z"
+    },
+    {
+      "id": "log-1790669702544",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T08:15:02.544Z"
+    },
+    {
+      "id": "log-1790669641361",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T08:14:01.361Z"
+    },
+    {
+      "id": "log-1790669615902",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-BUS-07",
+      "details": "Updated issue issue-101 status to 'In Progress' with remarks: \"Transport desk informed student helpline.\"",
+      "timestamp": "2026-09-29T08:13:35.902Z"
+    },
+    {
+      "id": "log-1790669558825",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T08:12:38.825Z"
+    },
+    {
+      "id": "log-1790669419037",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-07",
+      "details": "Updated issue issue-1790669419034 status to 'Resolved' with remarks: \"Alternative bypass via 200ft Radial Road communicated to driver.\"",
+      "timestamp": "2026-09-29T08:10:19.037Z"
+    },
+    {
+      "id": "log-1790669419034",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ISSUE_FILED",
+      "target": "DCE-07",
+      "details": "Staff reported Traffic Congestion: Stuck at Chromepet signal for 25 mins",
+      "timestamp": "2026-09-29T08:10:19.034Z"
+    },
+    {
+      "id": "log-1790669419024",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "ANNOUNCEMENT_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Configured voice announcement for Tambaram Sanatorium Flyover: \"Approaching Tambaram Sanatorium. Please ...\"",
+      "timestamp": "2026-09-29T08:10:19.024Z"
+    },
+    {
+      "id": "log-1790669419021",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "STOP_ADDED",
+      "target": "Tambaram Sanatorium Flyover",
+      "details": "Added bus stop 'Tambaram Sanatorium Flyover' at [12.9372, 80.1285] on route Guindy ➔ Tambaram ➔ DCE Express",
+      "timestamp": "2026-09-29T08:10:19.021Z"
+    },
+    {
+      "id": "log-1790669419017",
+      "adminId": "admin-system",
+      "adminName": "Administrator",
+      "action": "BUS_ADDED",
+      "target": "DCE-05",
+      "details": "Added new bus DCE-05 assigned to route DCE Express",
+      "timestamp": "2026-09-29T08:10:19.017Z"
+    },
+    {
+      "id": "log-1790669419008",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-09-29T08:10:19.008Z"
+    },
     {
       "id": "log-1790663525630",
       "adminId": "admin-system",

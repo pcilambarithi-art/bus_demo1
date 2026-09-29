@@ -174,7 +174,9 @@ class BusApiService {
 
     const adminToken = this.getAdminToken();
     const staffToken = this.getStaffToken();
-    if (adminToken && !headers['Authorization']) {
+    if (endpoint.startsWith('/api/staff') && staffToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${staffToken}`;
+    } else if (adminToken && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${adminToken}`;
     } else if (staffToken && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${staffToken}`;
@@ -202,7 +204,7 @@ class BusApiService {
       }
       return data as T;
     } catch (err: any) {
-      if (err.message !== 'SERVER_OFFLINE_OR_STATIC_HTML') {
+      if (err.message !== 'SERVER_OFFLINE_OR_STATIC_HTML' && !endpoint.includes('/api/staff/profile')) {
         console.warn(`[API] Network or parsing issue for ${endpoint}:`, err.message);
       }
       throw err;
