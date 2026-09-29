@@ -171,6 +171,24 @@ export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSucce
           </div>
         </div>
 
+        {/* Quick Links between Portals */}
+        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('dce_navigate', { detail: { route: 'admin-login' } }))}
+            className="hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <span>🛡️ Admin Console</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNavigateHome}
+            className="hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <span>🎓 Student & Guest Portal</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -180,8 +180,26 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onLoginSucce
           </button>
         </form>
 
+        {/* Quick Links between Portals */}
+        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('dce_navigate', { detail: { route: 'staff-login' } }))}
+            className="hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <span>🚌 Driver & Staff Login</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNavigateHome}
+            className="hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <span>🎓 Student & Guest Portal</span>
+          </button>
+        </div>
+
         {/* Security Notice */}
-        <div className="mt-8 pt-5 border-t border-white/10 text-center">
+        <div className="mt-4 text-center">
           <p className="text-[11px] text-slate-500 leading-relaxed">
             Restricted access for Dhanalakshmi College of Engineering Transport Cell. 
             All access logs, sessions, and mutations are cryptographically recorded.

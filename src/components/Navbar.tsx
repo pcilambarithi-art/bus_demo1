@@ -11,10 +11,7 @@ import {
   MapPin,
   Radio,
   LogOut,
-  ShieldCheck,
 } from 'lucide-react';
-import { isWebBrowser } from '../utils/platform';
-import { navigateToPortal } from '../routes/AppRouter';
 
 export const Navbar: React.FC = () => {
   const {
@@ -110,28 +107,6 @@ export const Navbar: React.FC = () => {
 
         {/* Action Controls & Toggles */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Web-Only Staff Portal & Admin Console Links */}
-          {isWebBrowser() && (
-            <>
-              <button
-                onClick={() => navigateToPortal('staff-login')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md dark:bg-amber-500/15 bg-amber-50 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all shadow-sm cursor-pointer"
-                title="Staff & Driver Operations Portal (Web Only)"
-              >
-                <Radio className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                <span>Staff Portal</span>
-              </button>
-
-              <button
-                onClick={() => navigateToPortal('admin-login')}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md dark:bg-cyan-500/15 bg-cyan-50 text-cyan-600 dark:text-cyan-400 border border-cyan-400/40 hover:bg-cyan-500/25 active:scale-95 transition-all shadow-sm cursor-pointer"
-                title="DCE Fleet Administration Console (Web Only)"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Admin</span>
-              </button>
-            </>
-          )}
 
           {/* Ask Transit AI Copilot Button */}
           <button
