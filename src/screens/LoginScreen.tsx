@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useBus } from '../context/BusContext';
+import { isWebBrowser } from '../utils/platform';
+import { busApiService } from '../services/busApiService';
+import { sound } from '../utils/sound';
 import {
   Volume2,
   VolumeX,
@@ -14,6 +17,12 @@ import {
   Radio,
   Sun,
   Moon,
+  Shield,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
@@ -29,7 +38,15 @@ export const LoginScreen: React.FC = () => {
     isDark,
   } = useBus();
 
-  const [activeTab, setActiveTab] = useState<'google' | 'college'>('google');
+  const isWeb = isWebBrowser();
+  const [activeTab, setActiveTab] = useState<'google' | 'college' | 'admin'>('google');
+
+  // Admin Login State
+  const [adminEmail, setAdminEmail] = useState('admin@dce.edu');
+  const [adminPassword, setAdminPassword] = useState('admin123');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   // Google Modal State
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -61,6 +78,28 @@ export const LoginScreen: React.FC = () => {
       busId: route.id === 'route-04' ? 'bus-04' : route.id === 'route-01' ? 'bus-01' : route.id === 'route-12' ? 'bus-12' : 'bus-07',
       stopId: route.stops[2]?.id || route.stops[0]?.id,
     });
+  };
+
+  const handleAdminSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail.trim() || !adminPassword.trim()) {
+      setAdminError('Please enter administrator email and password.');
+      sound.playAlert();
+      return;
+    }
+    setAdminLoading(true);
+    setAdminError(null);
+    sound.playClick();
+    try {
+      await busApiService.adminLogin(adminEmail.trim(), adminPassword.trim());
+      sound.playSuccess();
+      window.dispatchEvent(new CustomEvent('dce_navigate', { detail: { route: 'admin-dashboard' } }));
+    } catch (err: any) {
+      sound.playAlert();
+      setAdminError(err.message || 'Invalid administrator credentials. Access Denied.');
+    } finally {
+      setAdminLoading(false);
+    }
   };
 
   return (
@@ -144,39 +183,56 @@ export const LoginScreen: React.FC = () => {
           {/* Welcome Badge */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full dark:bg-cyan-500/10 bg-cyan-50 border dark:border-cyan-400/30 border-cyan-200 text-cyan-600 dark:text-cyan-400 text-xs font-semibold mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Official Student & Faculty Portal</span>
+              {activeTab === 'admin' ? <Shield className="w-3.5 h-3.5 text-cyan-500" /> : <Sparkles className="w-3.5 h-3.5" />}
+              <span>
+                {activeTab === 'admin' ? 'DCE Central Administration' : 'Official Student & Faculty Portal'}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black dark:text-white text-slate-900 tracking-tight">
-              Sign In to Transit
+              {activeTab === 'admin' ? 'Administrator Login' : 'Sign In to Transit'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Track your college bus live with GPS & voice alerts
+              {activeTab === 'admin'
+                ? 'Role-based fleet management, routes & live telemetry control'
+                : 'Track your college bus live with GPS & voice alerts'}
             </p>
           </div>
 
-          {/* Tab Switcher (Google Connect vs College ID) */}
-          <div className="flex p-1 rounded-2xl dark:bg-[#070B19]/80 bg-slate-100 dark:border-white/10 border-slate-200 mb-6">
+          {/* Tab Switcher (Google Connect vs College ID vs Admin Login) */}
+          <div className="flex p-1 rounded-2xl dark:bg-[#070B19]/80 bg-slate-100 dark:border-white/10 border-slate-200 mb-6 gap-1">
             <button
               onClick={() => setActiveTab('google')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'google'
                   ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>Connect with Google</span>
+              <span>Google</span>
             </button>
             <button
               onClick={() => setActiveTab('college')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'college'
                   ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>College Roll ID</span>
+              <span>College ID</span>
             </button>
+            {isWeb && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'admin'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-cyan-400'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Admin</span>
+              </button>
+            )}
           </div>
 
           {/* 1. GOOGLE CONNECT SECTION */}
@@ -305,6 +361,91 @@ export const LoginScreen: React.FC = () => {
             </form>
           )}
 
+          {/* 3. ADMIN LOGIN SECTION */}
+          {activeTab === 'admin' && (
+            <form onSubmit={handleAdminSubmit} className="space-y-3.5 animate-[fadeIn_0.25s_ease-out]">
+              <div className="p-3.5 rounded-2xl dark:bg-[#0B132B]/80 bg-cyan-50/70 border dark:border-cyan-500/25 border-cyan-200 text-center">
+                <p className="text-xs dark:text-cyan-300 text-cyan-800 font-bold">
+                  Authorized Transport Administration Only
+                </p>
+                <p className="text-[11px] dark:text-slate-400 text-slate-600 mt-0.5">
+                  Direct management of all buses, routes, map pins, and driver rosters.
+                </p>
+              </div>
+
+              {adminError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2 animate-[fadeIn_0.2s_ease-out]">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{adminError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
+                  Administrator Username / Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="admin@dce.edu"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold dark:text-slate-300 text-slate-700 uppercase tracking-wider mb-1">
+                  Admin Security Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type={showAdminPassword ? 'text' : 'password'}
+                    required
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full dark:bg-[#070B19] bg-slate-50 border dark:border-white/15 border-slate-300 rounded-xl pl-9 pr-10 py-2 text-xs dark:text-white text-slate-900 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={adminLoading}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-black font-extrabold text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all active:scale-[0.98] mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>{adminLoading ? 'Authenticating Admin...' : 'Enter Admin Console'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminEmail('admin@dce.edu');
+                    setAdminPassword('admin123');
+                    setAdminError(null);
+                  }}
+                  className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                >
+                  ⚡ Quick Fill Admin (admin@dce.edu / admin123)
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* Divider */}
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
@@ -328,12 +469,30 @@ export const LoginScreen: React.FC = () => {
             {/* Switch to Driver Cockpit Mode */}
             <button
               type="button"
-              onClick={() => setMode('driver')}
+              onClick={() => {
+                if (isWeb) {
+                  window.dispatchEvent(new CustomEvent('dce_navigate', { detail: { route: 'staff-login' } }));
+                } else {
+                  setMode('driver');
+                }
+              }}
               className="w-full py-2.5 px-4 rounded-xl border border-amber-500/30 dark:bg-amber-500/10 bg-amber-50 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
             >
               <Radio className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-pulse" />
               <span>DCE Bus Driver? Open Cockpit</span>
             </button>
+
+            {/* Switch to Admin Console Mode (Web Only) */}
+            {isWeb && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                className="w-full py-2.5 px-4 rounded-xl border border-cyan-500/40 dark:bg-cyan-500/10 bg-cyan-50 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+              >
+                <Shield className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+                <span>DCE Administrator? Sign In to Console</span>
+              </button>
+            )}
           </div>
 
           {/* Security Footer Note */}

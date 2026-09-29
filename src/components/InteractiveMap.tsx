@@ -129,13 +129,8 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
     setIsLocationModalOpen,
   } = useBus();
 
-  // Engine: Google Maps (Primary Default) | Leaflet (OSM Fallback) | MapLibre
-  const [mapEngine, setMapEngine] = useState<'google' | 'leaflet' | 'maplibre'>(() => {
-    if (typeof window !== 'undefined' && (window as any).googleMapsAuthFailed) {
-      return 'leaflet';
-    }
-    return 'google';
-  });
+  // Engine: Leaflet (Uniform Default across all views) | Google Maps | MapLibre
+  const [mapEngine, setMapEngine] = useState<'leaflet' | 'google' | 'maplibre'>('leaflet');
   const [googleAvailable, setGoogleAvailable] = useState(() => {
     return (
       typeof window !== 'undefined' &&
@@ -1204,20 +1199,20 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
           {/* Map Engine Switcher (Google Maps / Leaflet) */}
           <button
             onClick={() => {
-              if (mapEngine === 'google') {
-                setMapEngine('leaflet');
-              } else if (mapEngine === 'leaflet') {
+              if (mapEngine === 'leaflet') {
                 setMapEngine(googleAvailable ? 'google' : 'maplibre');
+              } else if (mapEngine === 'google') {
+                setMapEngine('maplibre');
               } else {
-                setMapEngine('google');
+                setMapEngine('leaflet');
               }
             }}
-            title={`Switch Map (Current: ${mapEngine === 'google' ? 'Google Maps' : mapEngine === 'leaflet' ? 'Leaflet OSM' : 'MapLibre'})`}
+            title={`Switch Map (Current: ${mapEngine === 'leaflet' ? 'Leaflet OSM' : mapEngine === 'google' ? 'Google Maps' : 'MapLibre'})`}
             className="px-2 sm:px-2.5 py-1.5 rounded-2xl flex items-center gap-1.5 backdrop-blur-xl bg-slate-900/85 dark:bg-[#070B19]/85 text-white border border-cyan-400/40 hover:bg-white/15 active:scale-95 transition-all shadow-lg text-[10px] font-bold"
           >
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden sm:inline">
-              {mapEngine === 'google' ? 'Google Maps' : 'Leaflet OSM'}
+              {mapEngine === 'leaflet' ? 'Leaflet OSM' : mapEngine === 'google' ? 'Google Maps' : 'MapLibre'}
             </span>
           </button>
 
