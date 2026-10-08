@@ -361,7 +361,11 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
             </div>
             <div class="flex flex-col items-start leading-none pr-0.5">
               <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
-              <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
+              <div class="flex items-center gap-1 mt-0.5">
+                <span class="text-[9px] font-mono text-cyan-300 font-bold bus-speed-label">${telemetry.speedKmh} km/h</span>
+                <span class="text-[8px] text-slate-400">•</span>
+                <span class="text-[9px] font-mono text-emerald-400 font-bold bus-eta-label">ETA ${telemetry.etaMinutes}m</span>
+              </div>
             </div>
             <div id="ml-bearing-arrow" class="w-3 h-3 text-cyan-400 transform shrink-0" style="transform: rotate(${telemetry.bearing}deg)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
@@ -487,21 +491,32 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
     selectedRoute.stops.forEach((stop, index) => {
       const isStudentStop = stop.id === studentStop.id;
       const isTerminal = stop.isTerminal;
+      const isNextStop = stop.id === telemetry.nextStop?.id;
+      const isCurrentStop = telemetry.currentStation?.id === stop.id;
+      const isArrived = isCurrentStop && telemetry.statusIndicator === 'green';
 
       const stopEl = document.createElement('div');
       stopEl.className = 'relative flex flex-col items-center group cursor-pointer';
       stopEl.innerHTML = `
-        <div class="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold border-2 transition-transform duration-200 group-hover:scale-125 ${
-          isStudentStop
+        ${isNextStop ? '<div class="absolute -top-1 w-9 h-9 rounded-full bg-cyan-400/30 animate-ping pointer-events-none"></div>' : ''}
+        ${isArrived ? '<div class="absolute -top-1 w-9 h-9 rounded-full bg-emerald-400/40 animate-pulse pointer-events-none"></div>' : ''}
+        <div class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold border-2 transition-transform duration-200 group-hover:scale-125 ${
+          isArrived
+            ? 'bg-emerald-500 border-white text-white shadow-[0_0_15px_rgba(16,185,129,0.9)] ring-2 ring-emerald-400/60'
+            : isNextStop
+            ? 'bg-cyan-500 border-white text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.9)] ring-2 ring-cyan-400/60'
+            : isStudentStop
             ? 'bg-blue-500 border-white text-white shadow-[0_0_15px_rgba(59,130,246,0.8)]'
             : isTerminal
-            ? 'bg-emerald-500 border-white text-white shadow-md'
+            ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-md'
             : 'bg-[#0B132B] dark:bg-[#070B19] border-cyan-400 text-cyan-300 shadow-sm'
         }">
           ${index + 1}
         </div>
-        <div class="mt-1 px-2 py-0.5 rounded-md bg-[#0B132B]/90 dark:bg-[#070B19]/90 border border-white/10 text-[9px] font-semibold text-white whitespace-nowrap shadow-md pointer-events-none">
-          ${stop.shortName}
+        <div class="mt-1 px-2 py-0.5 rounded-md bg-[#0B132B]/90 dark:bg-[#070B19]/90 border border-white/10 text-[9px] font-semibold text-white whitespace-nowrap shadow-md pointer-events-none flex items-center gap-1">
+          ${isArrived ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : isNextStop ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>' : ''}
+          <span>${stop.shortName}</span>
+          ${isNextStop ? '<span class="text-[8px] font-black text-cyan-300 font-mono">(NEXT)</span>' : isArrived ? '<span class="text-[8px] font-black text-emerald-300 font-mono">(AT STATION)</span>' : ''}
         </div>
       `;
 
@@ -591,7 +606,11 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
             </div>
             <div class="flex flex-col items-start leading-none pr-0.5">
               <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
-              <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
+              <div class="flex items-center gap-1 mt-0.5">
+                <span class="text-[9px] font-mono text-cyan-300 font-bold bus-speed-label">${telemetry.speedKmh} km/h</span>
+                <span class="text-[8px] text-slate-400">•</span>
+                <span class="text-[9px] font-mono text-emerald-400 font-bold bus-eta-label">ETA ${telemetry.etaMinutes}m</span>
+              </div>
             </div>
             <div id="bus-bearing-arrow" class="w-3 h-3 text-cyan-400 transform shrink-0" style="transform: rotate(${telemetry.bearing}deg)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
@@ -655,21 +674,33 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
 
     selectedRoute.stops.forEach((stop, index) => {
       const isStudentStop = stop.id === studentStop.id;
+      const isNextStop = stop.id === telemetry.nextStop?.id;
+      const isCurrentStop = telemetry.currentStation?.id === stop.id;
+      const isArrived = isCurrentStop && telemetry.statusIndicator === 'green';
+
       const stopIcon = L.divIcon({
         className: 'custom-stop-marker',
         html: `
           <div class="relative flex flex-col items-center group cursor-pointer">
-            <div class="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold border-2 ${
-              isStudentStop
+            ${isNextStop ? '<div class="absolute -top-1 w-9 h-9 rounded-full bg-cyan-400/30 animate-ping pointer-events-none"></div>' : ''}
+            ${isArrived ? '<div class="absolute -top-1 w-9 h-9 rounded-full bg-emerald-400/40 animate-pulse pointer-events-none"></div>' : ''}
+            <div class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold border-2 ${
+              isArrived
+                ? 'bg-emerald-500 border-white text-white shadow-lg ring-2 ring-emerald-400/60'
+                : isNextStop
+                ? 'bg-cyan-500 border-white text-slate-950 shadow-lg ring-2 ring-cyan-400/60'
+                : isStudentStop
                 ? 'bg-blue-500 border-white text-white shadow-lg scale-110'
                 : stop.isTerminal
-                ? 'bg-emerald-500 border-white text-white shadow-md'
+                ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-md'
                 : 'bg-[#0B132B] dark:bg-[#070B19] border-cyan-400 text-cyan-300'
             }">
               ${index + 1}
             </div>
-            <div class="mt-1 px-1.5 py-0.5 rounded bg-[#0B132B]/90 text-[9px] font-semibold text-white whitespace-nowrap shadow-sm pointer-events-none">
-              ${stop.shortName}
+            <div class="mt-1 px-1.5 py-0.5 rounded bg-[#0B132B]/90 text-[9px] font-semibold text-white whitespace-nowrap shadow-sm pointer-events-none flex items-center gap-1">
+              ${isArrived ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : isNextStop ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>' : ''}
+              <span>${stop.shortName}</span>
+              ${isNextStop ? '<span class="text-[8px] font-black text-cyan-300 font-mono">(NEXT)</span>' : isArrived ? '<span class="text-[8px] font-black text-emerald-300 font-mono">(AT STATION)</span>' : ''}
             </div>
           </div>
         `,
@@ -679,7 +710,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       const marker = L.marker([stop.lat, stop.lng], { icon: stopIcon }).addTo(stopsLayerGroupRef.current!);
       marker.on('click', () => setStreetViewStop(stop));
     });
-  }, [selectedRoute, studentStop]);
+  }, [selectedRoute, studentStop, telemetry.nextStop?.id, telemetry.currentStation?.id, telemetry.statusIndicator]);
 
   // Update Leaflet Route & Stops when selectedRoute changes
   useEffect(() => {
@@ -972,8 +1003,10 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       try {
         const el = mlBusMarkerRef.current.getElement();
         if (el) {
-          const speedEl = el.querySelector('span.font-mono');
+          const speedEl = el.querySelector('.bus-speed-label') || el.querySelector('span.font-mono');
           if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const etaEl = el.querySelector('.bus-eta-label');
+          if (etaEl) etaEl.textContent = `ETA ${telemetry.etaMinutes}m`;
           const badgeEl = el.querySelector('.bus-status-badge-container');
           if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
         }
@@ -983,8 +1016,10 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       try {
         const iconEl = busMarkerRef.current.getElement();
         if (iconEl) {
-          const speedEl = iconEl.querySelector('span.font-mono');
+          const speedEl = iconEl.querySelector('.bus-speed-label') || iconEl.querySelector('span.font-mono');
           if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const etaEl = iconEl.querySelector('.bus-eta-label');
+          if (etaEl) etaEl.textContent = `ETA ${telemetry.etaMinutes}m`;
           const badgeEl = iconEl.querySelector('.bus-status-badge-container');
           if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
         }

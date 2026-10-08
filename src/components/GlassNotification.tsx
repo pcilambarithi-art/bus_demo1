@@ -9,18 +9,23 @@ export const GlassNotification: React.FC = () => {
   if (!activeAlert) return null;
 
   const isArrived = activeAlert.tier === 'arrived';
-  const is200m = activeAlert.tier === '200m';
+  const isDeparted = activeAlert.tier === 'stop-arrived';
+  const isApproaching = activeAlert.tier === 'stop-approaching' || activeAlert.tier === '200m';
 
   const badgeColor = isArrived
     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-    : is200m
+    : isDeparted
+    ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+    : isApproaching
     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
     : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
 
   const iconGlow = isArrived
     ? 'shadow-[0_0_15px_rgba(16,185,129,0.5)] bg-emerald-500 text-white'
-    : is200m
-    ? 'shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-500 text-white'
+    : isDeparted
+    ? 'shadow-[0_0_15px_rgba(244,63,94,0.5)] bg-rose-500 text-white'
+    : isApproaching
+    ? 'shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-400 text-slate-950'
     : 'shadow-[0_0_15px_rgba(6,182,212,0.5)] bg-cyan-500 text-black';
 
   return (
@@ -49,7 +54,7 @@ export const GlassNotification: React.FC = () => {
           >
             {isArrived ? (
               <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
-            ) : is200m ? (
+            ) : isApproaching ? (
               <Bell className="w-5 h-5 stroke-[2.5]" />
             ) : (
               <Navigation className="w-5 h-5 stroke-[2.5]" />
