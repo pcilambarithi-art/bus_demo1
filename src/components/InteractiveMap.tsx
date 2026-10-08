@@ -46,7 +46,7 @@ import { formatDistance } from '../utils/geo';
 import { StreetViewModal } from './StreetViewModal';
 import { PlacesSearchBar } from './PlacesSearchBar';
 import { getOsrmRoute } from '../services/osrm';
-import type { BusStop } from '../types/bus';
+import type { BusStop, BusTelemetry } from '../types/bus';
 
 interface InteractiveMapProps {
   className?: string;
@@ -106,6 +106,49 @@ const GOOGLE_LIGHT_STYLES = [
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#BAE6FD' }] },
 ];
+
+/**
+ * Returns small circular status indicator HTML:
+ * 🟡 Yellow — Destination / Very Close
+ * 🔴 Red    — Moving to Next Station
+ * 🟢 Green  — At Station
+ */
+export const getBusStatusBadgeHtml = (telemetry: BusTelemetry): string => {
+  const isNearDestination = telemetry.distanceToStudentStopMeters <= 300 || telemetry.status === 'ARRIVING';
+  const isAtStation = telemetry.status === 'ARRIVED' || (telemetry.speedKmh <= 2 && telemetry.distanceToNextStopMeters <= 60);
+
+  if (isNearDestination) {
+    // 🟡 Yellow — Destination / Very Close (Pin with Check Mark / Target icon)
+    return `
+      <div class="relative w-5 h-5 rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.7)]" title="Yellow: Destination / Very Close">
+        <svg class="w-3 h-3 text-slate-950" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm-1.25 10.5l-3-3 1.41-1.41L10.75 9.68l4.84-4.84 1.41 1.41-6.25 6.25z"/>
+        </svg>
+      </div>
+    `;
+  }
+
+  if (isAtStation) {
+    // 🟢 Green — At Station (Station / Stop Shelter Check Mark)
+    return `
+      <div class="relative w-5 h-5 rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.7)]" title="Green: At Station">
+        <svg class="w-3 h-3 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+    `;
+  }
+
+  // 🔴 Red — Moving to Next Station (Forward Route Arrow)
+  return `
+    <div class="relative w-5 h-5 rounded-full bg-rose-500 border border-rose-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(244,63,94,0.7)]" title="Red: Moving to Next Station">
+      <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </div>
+  `;
+};
 
 const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   className = '',
@@ -312,13 +355,15 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
         busEl.className = 'bus-pin relative flex flex-col items-center select-none pointer-events-auto cursor-pointer';
         busEl.innerHTML = `
           <div class="absolute -top-1 w-12 h-12 bg-cyan-400/20 rounded-full animate-ping pointer-events-none"></div>
-          <div class="relative z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-[#0B132B]/95 dark:bg-[#070B19]/95 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.5)] backdrop-blur-md">
-            <span class="text-base leading-none">🚌</span>
-            <div class="flex flex-col items-start leading-none">
+          <div class="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B]/95 dark:bg-[#070B19]/95 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.5)] backdrop-blur-md">
+            <div class="bus-status-badge-container shrink-0">
+              ${getBusStatusBadgeHtml(telemetry)}
+            </div>
+            <div class="flex flex-col items-start leading-none pr-0.5">
               <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
               <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
             </div>
-            <div id="ml-bearing-arrow" class="w-3 h-3 text-cyan-400 transform" style="transform: rotate(${telemetry.bearing}deg)">
+            <div id="ml-bearing-arrow" class="w-3 h-3 text-cyan-400 transform shrink-0" style="transform: rotate(${telemetry.bearing}deg)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
             </div>
           </div>
@@ -540,13 +585,15 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       html: `
         <div class="bus-pin relative flex flex-col items-center select-none pointer-events-auto">
           <div class="absolute -top-1 w-12 h-12 bg-cyan-400/20 rounded-full animate-ping pointer-events-none"></div>
-          <div class="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#0B132B]/90 dark:bg-[#070B19]/90 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.45)] backdrop-blur-md">
-            <span class="text-base">🚌</span>
-            <div class="flex flex-col items-start leading-none">
+          <div class="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B]/90 dark:bg-[#070B19]/90 border border-cyan-400/50 shadow-[0_8px_25px_rgba(6,182,212,0.45)] backdrop-blur-md">
+            <div class="bus-status-badge-container shrink-0">
+              ${getBusStatusBadgeHtml(telemetry)}
+            </div>
+            <div class="flex flex-col items-start leading-none pr-0.5">
               <span class="text-[11px] font-black text-white tracking-wider">${selectedBus.busNumber}</span>
               <span class="text-[9px] font-mono text-cyan-300 font-bold">${telemetry.speedKmh} km/h</span>
             </div>
-            <div id="bus-bearing-arrow" class="w-3 h-3 text-cyan-400 transform" style="transform: rotate(${telemetry.bearing}deg)">
+            <div id="bus-bearing-arrow" class="w-3 h-3 text-cyan-400 transform shrink-0" style="transform: rotate(${telemetry.bearing}deg)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
             </div>
           </div>
@@ -868,7 +915,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
     currentPosRef.current = [telemetry.lat, telemetry.lng];
     targetPosRef.current = [telemetry.lat, telemetry.lng];
 
-    // 1. MapLibre: re-center and update bus pin number
+    // 1. MapLibre: re-center and update bus pin number, speed & status badge
     if (mlMapInstanceRef.current && mlBusMarkerRef.current) {
       try {
         mlBusMarkerRef.current.setLngLat([telemetry.lng, telemetry.lat]);
@@ -876,6 +923,10 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
         if (el) {
           const numberEl = el.querySelector('span.tracking-wider');
           if (numberEl) numberEl.textContent = selectedBus.busNumber;
+          const speedEl = el.querySelector('span.font-mono');
+          if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const badgeEl = el.querySelector('.bus-status-badge-container');
+          if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
         }
         mlMapInstanceRef.current.easeTo({
           center: [telemetry.lng, telemetry.lat],
@@ -884,7 +935,7 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
       } catch (_) {}
     }
 
-    // 2. Leaflet: re-center and update bus pin number
+    // 2. Leaflet: re-center and update bus pin number, speed & status badge
     if (mapInstanceRef.current && busMarkerRef.current) {
       try {
         busMarkerRef.current.setLatLng([telemetry.lat, telemetry.lng]);
@@ -892,6 +943,10 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
         if (iconEl) {
           const numberEl = iconEl.querySelector('span.tracking-wider');
           if (numberEl) numberEl.textContent = selectedBus.busNumber;
+          const speedEl = iconEl.querySelector('span.font-mono');
+          if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const badgeEl = iconEl.querySelector('.bus-status-badge-container');
+          if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
         }
         mapInstanceRef.current.panTo([telemetry.lat, telemetry.lng], { animate: true, duration: 0.8 });
       } catch (_) {}

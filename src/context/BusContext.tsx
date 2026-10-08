@@ -13,6 +13,10 @@ import type {
   LocationPermissionState,
   VoiceAssistantId,
   VoiceSpeed,
+  LegalTab,
+  StationLiveStatus,
+  StationNotificationRecord,
+  GpsHealth,
 } from '../types/bus';
 import { BUS_ROUTES, BUS_VEHICLES, DEFAULT_STUDENT } from '../data/busRoutes';
 import { calculateDistanceMeters, calculateBearing, generateSmoothPath } from '../utils/geo';
@@ -66,6 +70,9 @@ interface BusContextType {
 
   // Telemetry & Live Bus state
   telemetry: BusTelemetry;
+  stationNotificationHistory: StationNotificationRecord[];
+  stationStates: Record<string, StationLiveStatus>;
+  refreshStationHistory: () => Promise<void>;
   gpsStatus: GpsStatus;
   setGpsStatus: (status: GpsStatus) => void;
   connectionStatus: ConnectionStatus;
@@ -100,6 +107,11 @@ interface BusContextType {
   setIsApkModalOpen: (open: boolean) => void;
   isSosModalOpen: boolean;
   setIsSosModalOpen: (open: boolean) => void;
+  isLegalModalOpen: boolean;
+  setIsLegalModalOpen: (open: boolean) => void;
+  legalModalTab: LegalTab;
+  setLegalModalTab: (tab: LegalTab) => void;
+  openLegalModal: (tab?: LegalTab) => void;
 
   // Driver & Student Mode
   mode: 'student' | 'driver';
@@ -439,6 +451,14 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isApkModalOpen, setIsApkModalOpen] = useState(false);
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalTab>('privacy');
+
+  const openLegalModal = useCallback((tab?: LegalTab) => {
+    sound.playClick();
+    if (tab) setLegalModalTab(tab);
+    setIsLegalModalOpen(true);
+  }, []);
 
   // Proximity Alerts & Throttled Voice Engine
   const [activeAlert, setActiveAlert] = useState<ProximityAlert | null>(null);
@@ -577,6 +597,66 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [selectedBus.busNumber, studentStop.name, studentStop.shortName, announcements]
   );
 
+  // Station-by-Station Live States & History Audit
+  const [serverLiveBusState, setServerLiveBusState] = useState<any | null>(null);
+  const [stationStates, setStationStates] = useState<Record<string, StationLiveStatus>>({});
+  const [stationNotificationHistory, setStationNotificationHistory] = useState<StationNotificationRecord[]>([]);
+
+  const refreshStationHistory = useCallback(async () => {
+    try {
+      const history = await busApiService.getStationHistory(selectedBus.busNumber);
+      if (history && history.length) {
+        setStationNotificationHistory(history);
+      }
+    } catch (_) {}
+  }, [selectedBus.busNumber]);
+
+  // Connect to Live Server-Sent Events (SSE) Stream
+  useEffect(() => {
+    refreshStationHistory();
+
+    const disconnectStream = busApiService.connectLiveSseStream((busData, events) => {
+      if (busData.busNumber?.toLowerCase() === selectedBus.busNumber.toLowerCase()) {
+        setServerLiveBusState(busData);
+        if (busData.stationStates) {
+          setStationStates(busData.stationStates);
+        }
+        setIsDriverBroadcasting(true);
+        setConnectionStatus('live');
+        setGpsStatus('active');
+      }
+
+      if (events && events.length > 0) {
+        setStationNotificationHistory((prev) => {
+          const ids = new Set(prev.map((e) => e.id));
+          const newEvents = events.filter((e) => !ids.has(e.id));
+          return [...newEvents, ...prev].slice(0, 50);
+        });
+
+        // Trigger in-app alerts for each station milestone event
+        events.forEach((ev) => {
+          let tier: ProximityAlert['tier'] = 'stop-approaching';
+          if (ev.event === 'ARRIVED') tier = 'arrived';
+          else if (ev.event === 'DEPARTED') tier = 'stop-arrived';
+          else if (ev.event === 'APPROACHING') tier = 'stop-approaching';
+
+          triggerCustomAlert(
+            tier,
+            ev.title,
+            ev.message,
+            ev.busNumber,
+            ev.stationName,
+            ev.distanceMeters ? ev.distanceMeters / 1000 : undefined
+          );
+        });
+      }
+    });
+
+    return () => {
+      disconnectStream();
+    };
+  }, [selectedBus.busNumber, refreshStationHistory, triggerCustomAlert]);
+
   // Listen to Driver Phone GPS via Firebase RTDB or local broadcast
   useEffect(() => {
     const unsub = subscribeBusGps(selectedBus.busNumber, (data) => {
@@ -590,21 +670,26 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Compute Telemetry
   const telemetry = useMemo<BusTelemetry>(() => {
-    // If live GPS from Driver is active (within last 60s), use it directly!
-    const isLive = liveDriverGps && (Date.now() - liveDriverGps.timestamp < 60000);
+    // Check if live server telemetry or driver GPS is active
+    const hasServerGps = Boolean(serverLiveBusState && (Date.now() - serverLiveBusState.lastUpdated < 60000));
+    const isLive = Boolean(hasServerGps || (liveDriverGps && (Date.now() - liveDriverGps.timestamp < 60000)));
 
     const waypoints: [number, number][] = routeWaypoints.length ? routeWaypoints : (selectedRoute.waypoints.length ? selectedRoute.waypoints : [[12.9249, 80.1165], [12.9250, 80.1166]]);
     const idx = Math.min(Math.max(waypointIndex, 0), waypoints.length - 1);
     const coord = waypoints[idx] || waypoints[0] || [12.9249, 80.1165];
     
-    const currentCoord: [number, number] = isLive
+    const currentCoord: [number, number] = hasServerGps
+      ? [serverLiveBusState.lat, serverLiveBusState.lng]
+      : (liveDriverGps && isLive)
       ? [liveDriverGps.latitude, liveDriverGps.longitude]
       : [coord[0], coord[1]];
 
     // Bearing
     const nextIdx = Math.min(idx + 1, waypoints.length - 1);
     const nextCoord = waypoints[nextIdx] || currentCoord;
-    const bearing = isLive && liveDriverGps.heading
+    const bearing = hasServerGps && serverLiveBusState.heading
+      ? serverLiveBusState.heading
+      : isLive && liveDriverGps?.heading
       ? liveDriverGps.heading
       : calculateBearing(currentCoord[0], currentCoord[1], nextCoord[0], nextCoord[1]);
 
@@ -625,56 +710,88 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // Identify which stop is next along the route
-    let nextStop = selectedRoute.stops[selectedRoute.stops.length - 1];
+    let nextStop = serverLiveBusState?.nextStation || selectedRoute.stops[selectedRoute.stops.length - 1];
     let currentStopIdx = 0;
     for (let i = 0; i < selectedRoute.stops.length; i++) {
       const stop = selectedRoute.stops[i];
       const d = calculateDistanceMeters(currentCoord[0], currentCoord[1], stop.lat, stop.lng);
       if (d > 100 && i > currentStopIdx) {
-        nextStop = stop;
+        if (!serverLiveBusState?.nextStation) nextStop = stop;
         currentStopIdx = i;
         break;
       }
     }
 
-    const distToNextStopMeters = calculateDistanceMeters(
+    const distToNextStopMeters = serverLiveBusState?.distanceToNextStationMeters || calculateDistanceMeters(
       currentCoord[0],
       currentCoord[1],
       nextStop.lat,
       nextStop.lng
     );
 
-    // Speed calculation: from live driver GPS or calm realistic city traffic
+    // Speed calculation
     let speed = 25;
-    if (isLive) {
+    if (hasServerGps) {
+      speed = Math.round(serverLiveBusState.speedKmh);
+    } else if (liveDriverGps && isLive) {
       speed = Math.round(liveDriverGps.speed);
     } else {
       if (distToStudentStopMeters < 80 || distToNextStopMeters < 60) {
-        speed = 0; // stopped at transit station for boarding
+        speed = 0;
       } else if (distToStudentStopMeters < 250 || distToNextStopMeters < 200) {
-        speed = 12; // smoothly slowing down on approach
+        speed = 12;
       } else {
         const wobble = Math.sin(idx * 0.25) * 4;
-        speed = Math.round(24 + wobble); // calm, realistic city bus speed 20-28 km/h
+        speed = Math.round(24 + wobble);
       }
     }
 
-    // ETA calculation: realistic transit pace
-    let etaMinutes = Math.max(1, Math.round(distToStudentStopMeters / 350));
+    // ETA calculation
+    let etaMinutes = serverLiveBusState?.etaToNextStationMinutes || Math.max(1, Math.round(distToStudentStopMeters / 350));
     if (distToStudentStopMeters <= 50) {
       etaMinutes = 0;
     }
 
-    // Status
+    // Status: 🟢 Green (At Station), 🔴 Red (Moving), 🟡 Yellow (Destination)
     let status: BusMovementStatus = 'LIVE';
-    if (distToStudentStopMeters <= 40) {
-      status = 'ARRIVED';
-    } else if (distToStudentStopMeters <= 250) {
-      status = 'ARRIVING';
-    } else if (distToStudentStopMeters <= 1000) {
-      status = 'APPROACHING';
+    let statusIndicator: 'green' | 'red' | 'yellow' = 'red';
+    let statusLabel = 'Moving to Next Station';
+
+    const lastTimestamp = hasServerGps ? serverLiveBusState.lastUpdated : (liveDriverGps?.timestamp || Date.now());
+    const secondsSinceLastUpdate = Math.round((Date.now() - lastTimestamp) / 1000);
+    const gpsHealth: GpsHealth = isLive
+      ? (secondsSinceLastUpdate <= 25 ? 'active' : secondsSinceLastUpdate <= 60 ? 'weak' : 'offline')
+      : 'active';
+
+    const gpsHealthLabel = isLive
+      ? (secondsSinceLastUpdate <= 25
+          ? `Live GPS Active (Updated ${secondsSinceLastUpdate}s ago)`
+          : secondsSinceLastUpdate <= 60
+          ? `GPS Signal Weak (Updated ${secondsSinceLastUpdate}s ago)`
+          : 'GPS Unavailable / Offline')
+      : 'Live Simulation GPS';
+
+    if (hasServerGps && serverLiveBusState.statusIndicator) {
+      statusIndicator = serverLiveBusState.statusIndicator;
+      statusLabel = serverLiveBusState.statusLabel || (statusIndicator === 'green' ? 'At Station' : statusIndicator === 'yellow' ? 'Destination' : 'Moving');
+      status = statusIndicator === 'green' ? 'ARRIVED' : statusIndicator === 'yellow' ? 'ARRIVING' : 'LIVE';
     } else {
-      status = 'LIVE';
+      const isNearDestination = distToStudentStopMeters <= 250;
+      const isAtStation = distToStudentStopMeters <= 60 || distToNextStopMeters <= 60 || speed <= 2;
+
+      if (isNearDestination) {
+        statusIndicator = 'yellow';
+        statusLabel = 'Destination / Very Close';
+        status = 'ARRIVING';
+      } else if (isAtStation) {
+        statusIndicator = 'green';
+        statusLabel = `At Station (${nextStop.shortName || nextStop.name})`;
+        status = 'ARRIVED';
+      } else {
+        statusIndicator = 'red';
+        statusLabel = `Moving to ${nextStop.shortName || nextStop.name}`;
+        status = 'LIVE';
+      }
     }
 
     return {
@@ -685,14 +802,31 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentWaypointIndex: idx,
       currentStopIndex: currentStopIdx,
       nextStop,
+      currentStation: serverLiveBusState?.currentStation || null,
       distanceToNextStopMeters: Math.round(distToNextStopMeters),
       distanceToStudentStopMeters: Math.round(distToStudentStopMeters),
       distanceToStudentMeters: Math.round(distToStudentMeters),
       etaMinutes,
       status,
-      lastUpdated: isLive ? 'Live Driver GPS' : 'Just now',
+      statusIndicator,
+      statusLabel,
+      lastUpdated: gpsHealthLabel,
+      secondsSinceLastUpdate,
+      gpsHealth,
+      gpsHealthLabel,
+      stationStates: serverLiveBusState?.stationStates || stationStates,
     };
-  }, [selectedRoute, routeWaypoints, waypointIndex, studentStop, student.lat, student.lng, liveDriverGps]);
+  }, [
+    selectedRoute,
+    routeWaypoints,
+    waypointIndex,
+    studentStop,
+    student.lat,
+    student.lng,
+    liveDriverGps,
+    serverLiveBusState,
+    stationStates,
+  ]);
 
   // Native Browser Notification Permission Request
   useEffect(() => {
@@ -793,8 +927,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           triggered.delete(`${bus.id}-user-arrived`);
         }
 
-        // --- B. Proximity to EACH STOP of this CHOSEN bus route ---
-        busRoute.stops.forEach((stop) => {
+        // --- B. Station-by-Station State Machine for EACH STOP ---
+        busRoute.stops.forEach((stop, index) => {
           const distToStopMeters = calculateDistanceMeters(
             busCoord[0],
             busCoord[1],
@@ -802,46 +936,189 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             stop.lng
           );
           const stopDistKm = parseFloat((distToStopMeters / 1000).toFixed(1));
+          const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const isFinalStop = index === busRoute.stops.length - 1;
+          const nextStop = busRoute.stops[index + 1] || null;
 
-          // Approaching milestone for this stop (between 150m and 1000m)
+          // 1. APPROACHING STATION
           if (
-            distToStopMeters <= 1000 &&
-            distToStopMeters > 150 &&
+            distToStopMeters <= 500 &&
+            distToStopMeters > 70 &&
             !triggered.has(`${bus.id}-stop-${stop.id}-appr`)
           ) {
             triggered.add(`${bus.id}-stop-${stop.id}-appr`);
+            const etaMins = Math.max(1, Math.round(stopDistKm * 2.5));
             triggerCustomAlert(
               'stop-approaching',
-              `${bus.busNumber} Approaching ${stop.shortName}`,
-              `${bus.busNumber} is ${stopDistKm} km from ${stop.name}.`,
+              `Approaching ${stop.shortName}`,
+              `${bus.busNumber} is approaching ${stop.name}. ETA: ~${etaMins} mins • ${Math.round(distToStopMeters)}m remaining.`,
               bus.busNumber,
               stop.shortName,
               stopDistKm
             );
+
+            // Update live station state
+            setStationStates((prev) => ({
+              ...prev,
+              [stop.id]: {
+                stationId: stop.id,
+                stationName: stop.name,
+                shortName: stop.shortName,
+                sequence: stop.sequence,
+                lat: stop.lat,
+                lng: stop.lng,
+                approachRadiusMeters: 500,
+                arrivalRadiusMeters: 60,
+                state: 'APPROACHING',
+                arrivalTime: prev[stop.id]?.arrivalTime || null,
+                departureTime: prev[stop.id]?.departureTime || null,
+                distanceMeters: Math.round(distToStopMeters),
+                etaMinutes: etaMins,
+              },
+            }));
           }
-          // Arrived milestone for this stop (<= 60m)
+
+          // 2. BUS REACHED STATION
           else if (
-            distToStopMeters <= 60 &&
+            distToStopMeters <= 70 &&
             !triggered.has(`${bus.id}-stop-${stop.id}-arr`)
           ) {
             triggered.add(`${bus.id}-stop-${stop.id}-arr`);
+
+            if (isFinalStop) {
+              triggerCustomAlert(
+                'arrived',
+                `🟡 Destination Reached`,
+                `🟡 ${bus.busNumber} has reached the destination (${stop.name}). The journey is completed.`,
+                bus.busNumber,
+                stop.name,
+                0
+              );
+            } else {
+              triggerCustomAlert(
+                'stop-arrived',
+                `🟢 Reached ${stop.shortName}`,
+                `🟢 ${bus.busNumber} has reached ${stop.name}. Arrival: ${currentTime}. The bus is currently waiting at the station.`,
+                bus.busNumber,
+                stop.shortName,
+                0
+              );
+            }
+
+            // Record into station notification history
+            const record: StationNotificationRecord = {
+              id: `hist-${bus.busNumber}-${stop.id}-arr-${Date.now()}`,
+              busNumber: bus.busNumber,
+              stationId: stop.id,
+              stationName: stop.name,
+              sequence: stop.sequence,
+              event: isFinalStop ? 'DESTINATION' : 'ARRIVED',
+              eventLabel: isFinalStop ? 'Destination' : 'Arrived',
+              indicator: isFinalStop ? 'yellow' : 'green',
+              timeFormatted: currentTime,
+              timestamp: Date.now(),
+              speedKmh: 0,
+              distanceMeters: 0,
+              etaMinutes: 0,
+              title: isFinalStop ? `🟡 Destination: ${stop.name}` : `🟢 Arrived: ${stop.name}`,
+              message: isFinalStop
+                ? `${bus.busNumber} reached destination ${stop.name}.`
+                : `${bus.busNumber} reached ${stop.name}. Currently waiting.`,
+            };
+            setStationNotificationHistory((prev) => [record, ...prev.slice(0, 49)]);
+
+            // Update live station state
+            setStationStates((prev) => ({
+              ...prev,
+              [stop.id]: {
+                stationId: stop.id,
+                stationName: stop.name,
+                shortName: stop.shortName,
+                sequence: stop.sequence,
+                lat: stop.lat,
+                lng: stop.lng,
+                approachRadiusMeters: 500,
+                arrivalRadiusMeters: 60,
+                state: 'ARRIVED',
+                arrivalTime: currentTime,
+                departureTime: prev[stop.id]?.departureTime || null,
+                distanceMeters: 0,
+                etaMinutes: 0,
+              },
+            }));
+          }
+
+          // 3. BUS DEPARTED STATION
+          else if (
+            distToStopMeters > 90 &&
+            distToStopMeters < 800 &&
+            triggered.has(`${bus.id}-stop-${stop.id}-arr`) &&
+            !triggered.has(`${bus.id}-stop-${stop.id}-dep`) &&
+            !isFinalStop
+          ) {
+            triggered.add(`${bus.id}-stop-${stop.id}-dep`);
+            const nextEta = nextStop ? Math.max(1, Math.round(calculateDistanceMeters(busCoord[0], busCoord[1], nextStop.lat, nextStop.lng) / 400)) : 0;
+
             triggerCustomAlert(
               'stop-arrived',
-              `✓ ${bus.busNumber} Arrived at ${stop.shortName}`,
-              `${bus.busNumber} has reached ${stop.name}.`,
+              `🔴 Departed ${stop.shortName}`,
+              `🔴 ${bus.busNumber} has departed from ${stop.name}. Departure: ${currentTime}. Next stop: ${nextStop?.name || 'Destination'}. ETA: ~${nextEta} mins.`,
               bus.busNumber,
               stop.shortName,
-              0
+              stopDistKm
             );
+
+            // Record into station notification history
+            const record: StationNotificationRecord = {
+              id: `hist-${bus.busNumber}-${stop.id}-dep-${Date.now()}`,
+              busNumber: bus.busNumber,
+              stationId: stop.id,
+              stationName: stop.name,
+              sequence: stop.sequence,
+              event: 'DEPARTED',
+              eventLabel: 'Departed',
+              indicator: 'red',
+              timeFormatted: currentTime,
+              timestamp: Date.now(),
+              speedKmh: 24,
+              nextStationName: nextStop?.name,
+              nextStationEtaMinutes: nextEta,
+              title: `🔴 Departed: ${stop.name}`,
+              message: `${bus.busNumber} departed ${stop.name}. Next stop: ${nextStop?.name || 'Destination'}.`,
+            };
+            setStationNotificationHistory((prev) => [record, ...prev.slice(0, 49)]);
+
+            // Update live station state
+            setStationStates((prev) => ({
+              ...prev,
+              [stop.id]: {
+                stationId: stop.id,
+                stationName: stop.name,
+                shortName: stop.shortName,
+                sequence: stop.sequence,
+                lat: stop.lat,
+                lng: stop.lng,
+                approachRadiusMeters: 500,
+                arrivalRadiusMeters: 60,
+                state: 'DEPARTED',
+                arrivalTime: prev[stop.id]?.arrivalTime || currentTime,
+                departureTime: currentTime,
+                distanceMeters: Math.round(distToStopMeters),
+                etaMinutes: 0,
+              },
+            }));
           }
-          // Reset stop alert flags when bus moves away (> 1600m)
+
+          // Reset stop alert flags when bus moves far away
           else if (
-            distToStopMeters > 1600 &&
+            distToStopMeters > 2000 &&
             (triggered.has(`${bus.id}-stop-${stop.id}-appr`) ||
-             triggered.has(`${bus.id}-stop-${stop.id}-arr`))
+              triggered.has(`${bus.id}-stop-${stop.id}-arr`) ||
+              triggered.has(`${bus.id}-stop-${stop.id}-dep`))
           ) {
             triggered.delete(`${bus.id}-stop-${stop.id}-appr`);
             triggered.delete(`${bus.id}-stop-${stop.id}-arr`);
+            triggered.delete(`${bus.id}-stop-${stop.id}-dep`);
           }
         });
       }
@@ -986,6 +1263,9 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         studentStop,
         updateStudentStop,
         telemetry,
+        stationNotificationHistory,
+        stationStates,
+        refreshStationHistory,
         gpsStatus,
         setGpsStatus,
         connectionStatus,
@@ -1007,6 +1287,11 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsApkModalOpen,
         isSosModalOpen,
         setIsSosModalOpen,
+        isLegalModalOpen,
+        setIsLegalModalOpen,
+        legalModalTab,
+        setLegalModalTab,
+        openLegalModal,
         mode,
         setMode,
         isDriverBroadcasting,

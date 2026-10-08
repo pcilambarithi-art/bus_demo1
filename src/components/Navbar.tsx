@@ -40,7 +40,7 @@ export const Navbar: React.FC = () => {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl overflow-hidden border border-cyan-400/40 shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0 bg-white">
               <img
                 src="./app-logo.jpg"
-                alt="DCE College Bus Logo"
+                alt="Dhanalakshmi College of Engineering Official Crest"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -186,7 +186,7 @@ export const Navbar: React.FC = () => {
                 {student.avatarUrl ? (
                   <img
                     src={student.avatarUrl}
-                    alt={student.name}
+                    alt={`Profile photo of ${student.name}`}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-cyan-400/50 object-cover shadow-sm shrink-0"
                     referrerPolicy="no-referrer"
                   />

@@ -942,7 +942,7 @@
       "status": "In Progress",
       "adminRemarks": "Transport desk informed student helpline.",
       "createdAt": "2026-09-29T07:48:00.000Z",
-      "updatedAt": "2026-09-29T08:13:35.900Z"
+      "updatedAt": "2026-10-08T06:12:39.085Z"
     },
     {
       "id": "issue-102",
@@ -964,6 +964,78 @@
     }
   ],
   "activity_logs": [
+    {
+      "id": "log-1791439959086",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-BUS-07",
+      "details": "Updated issue issue-101 status to 'In Progress' with remarks: \"Transport desk informed student helpline.\"",
+      "timestamp": "2026-10-08T06:12:39.086Z"
+    },
+    {
+      "id": "log-1791439948242",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ISSUE_UPDATED",
+      "target": "DCE-BUS-07",
+      "details": "Updated issue issue-101 status to 'In Progress' with remarks: \"Transport desk informed student helpline.\"",
+      "timestamp": "2026-10-08T06:12:28.242Z"
+    },
+    {
+      "id": "log-1791439941054",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-08T06:12:21.054Z"
+    },
+    {
+      "id": "log-1791360443025",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-07T08:07:23.025Z"
+    },
+    {
+      "id": "log-1791360104767",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-07T08:01:44.767Z"
+    },
+    {
+      "id": "log-1791352906798",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-07T06:01:46.798Z"
+    },
+    {
+      "id": "log-1791351974808",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-07T05:46:14.808Z"
+    },
+    {
+      "id": "log-1790836345472",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-01T06:32:25.472Z"
+    },
     {
       "id": "log-1790671799859",
       "adminId": "admin-system",

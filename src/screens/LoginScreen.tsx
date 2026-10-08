@@ -36,10 +36,16 @@ export const LoginScreen: React.FC = () => {
     allRoutes,
     setTheme,
     isDark,
+    openLegalModal,
   } = useBus();
 
   const isWeb = isWebBrowser();
   const [activeTab, setActiveTab] = useState<'google' | 'college' | 'admin'>('google');
+
+  // Form Consents & Compliance States
+  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreeAgeConsent, setAgreeAgeConsent] = useState(true);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   // Admin Login State
   const [adminEmail, setAdminEmail] = useState('admin@dce.edu');
@@ -59,7 +65,18 @@ export const LoginScreen: React.FC = () => {
   const [department, setDepartment] = useState('Computer Science & Engineering');
   const [selectedRouteId, setSelectedRouteId] = useState(allRoutes[0]?.id || 'route-07');
 
+  const validateConsents = (): boolean => {
+    if (!agreeTerms || !agreeAgeConsent) {
+      setConsentError('Please accept both the Terms of Service & Age Eligibility consent to proceed.');
+      sound.playAlert();
+      return false;
+    }
+    setConsentError(null);
+    return true;
+  };
+
   const handleGoogleSubmit = (email?: string, displayName?: string) => {
+    if (!validateConsents()) return;
     loginWithGoogle({
       email: email || customGoogleEmail || 'karthik.s.dce@gmail.com',
       name: displayName || customGoogleName || 'Karthik S.',
@@ -70,6 +87,7 @@ export const LoginScreen: React.FC = () => {
 
   const handleCollegeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateConsents()) return;
     const route = allRoutes.find((r) => r.id === selectedRouteId) || allRoutes[0];
     loginWithCollegeId({
       name,
@@ -78,6 +96,11 @@ export const LoginScreen: React.FC = () => {
       busId: route.id === 'route-04' ? 'bus-04' : route.id === 'route-01' ? 'bus-01' : route.id === 'route-12' ? 'bus-12' : 'bus-07',
       stopId: route.stops[2]?.id || route.stops[0]?.id,
     });
+  };
+
+  const handleGuestSubmit = () => {
+    if (!validateConsents()) return;
+    loginAsGuest();
   };
 
   const handleAdminSubmit = async (e: React.FormEvent) => {
@@ -118,7 +141,7 @@ export const LoginScreen: React.FC = () => {
           <div className="w-10 h-10 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.4)] shrink-0 bg-white">
             <img
               src="./app-logo.jpg"
-              alt="DCE Logo"
+              alt="Dhanalakshmi College of Engineering Official Crest"
               className="w-full h-full object-cover"
             />
           </div>
@@ -196,6 +219,21 @@ export const LoginScreen: React.FC = () => {
                 ? 'Role-based fleet management, routes & live telemetry control'
                 : 'Track your college bus live with GPS & voice alerts'}
             </p>
+          </div>
+
+          {/* Zero Hidden Fees & Transparency Notice */}
+          <div className="mb-4 flex items-center justify-between p-2.5 rounded-2xl dark:bg-emerald-500/10 bg-emerald-50 border dark:border-emerald-500/20 border-emerald-200 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
+              <span>100% Free Campus Transit • Zero In-App Fees</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => openLegalModal('refund')}
+              className="text-[10px] underline hover:text-emerald-300 font-bold cursor-pointer"
+            >
+              Fee Policy
+            </button>
           </div>
 
           {/* Tab Switcher (Google Connect vs College ID vs Admin Login) */}
@@ -446,6 +484,72 @@ export const LoginScreen: React.FC = () => {
             </form>
           )}
 
+          {/* Mandatory Check Form Consents */}
+          {activeTab !== 'admin' && (
+            <div className="mt-4 p-3 rounded-2xl dark:bg-white/5 bg-slate-50 border dark:border-white/10 border-slate-200 text-left space-y-2.5">
+              {consentError && (
+                <div className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-1.5 animate-[fadeIn_0.2s_ease-out]">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{consentError}</span>
+                </div>
+              )}
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs dark:text-slate-300 text-slate-700 select-none">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => {
+                    setAgreeTerms(e.target.checked);
+                    if (e.target.checked && agreeAgeConsent) setConsentError(null);
+                  }}
+                  className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 border-slate-300 dark:border-white/20"
+                />
+                <span className="leading-tight text-[11px]">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={() => openLegalModal('terms')}
+                    className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:opacity-80"
+                  >
+                    Terms of Service
+                  </button>
+                  ,{' '}
+                  <button
+                    type="button"
+                    onClick={() => openLegalModal('privacy')}
+                    className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:opacity-80"
+                  >
+                    Privacy Policy
+                  </button>
+                  , and{' '}
+                  <button
+                    type="button"
+                    onClick={() => openLegalModal('cookie')}
+                    className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:opacity-80"
+                  >
+                    Cookie Policy
+                  </button>
+                  .
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs dark:text-slate-300 text-slate-700 select-none">
+                <input
+                  type="checkbox"
+                  checked={agreeAgeConsent}
+                  onChange={(e) => {
+                    setAgreeAgeConsent(e.target.checked);
+                    if (e.target.checked && agreeTerms) setConsentError(null);
+                  }}
+                  className="mt-0.5 rounded text-cyan-500 focus:ring-cyan-400 border-slate-300 dark:border-white/20"
+                />
+                <span className="leading-tight text-[11px]">
+                  <strong>Age & Enrollment Consent:</strong> I confirm I am an enrolled student or faculty/staff (or have parental/guardian consent if under 18).
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Divider */}
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
@@ -460,7 +564,7 @@ export const LoginScreen: React.FC = () => {
           <div className="flex flex-col gap-2.5">
             <button
               type="button"
-              onClick={loginAsGuest}
+              onClick={handleGuestSubmit}
               className="w-full py-2.5 px-4 rounded-xl border dark:border-white/15 border-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 dark:text-slate-300 text-slate-700 font-medium text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Instant Guest Pass (Explore Routes)</span>
@@ -503,18 +607,65 @@ export const LoginScreen: React.FC = () => {
         </div>
       </main>
 
-      {/* Campus Transit Stats Ticker */}
-      <footer className="relative z-10 w-full py-3 px-4 border-t dark:border-white/10 border-slate-200/80 dark:bg-[#070B19]/80 bg-slate-100/90 backdrop-blur-md text-center text-xs dark:text-slate-400 text-slate-600 flex flex-wrap items-center justify-center gap-3 sm:gap-6 font-mono">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse"></span>
-          <span>4 Active Express Routes</span>
-        </span>
-        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
-        <span>16 GPS Transmitters</span>
-        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
-        <span>2,400+ Daily Student Boardings</span>
-        <span className="hidden sm:inline dark:text-white/20 text-slate-400">•</span>
-        <span className="text-cyan-600 dark:text-cyan-400">DCE Manimangalam Campus</span>
+      {/* Campus Transit & Legal Compliance Footer */}
+      <footer className="relative z-10 w-full py-4 px-4 border-t dark:border-white/10 border-slate-300 dark:bg-[#070B19]/90 bg-slate-100/95 backdrop-blur-md text-xs dark:text-slate-300 text-slate-700 flex flex-col items-center justify-center gap-2.5 font-sans">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 font-mono text-[11px]">
+          <button
+            type="button"
+            onClick={() => openLegalModal('privacy')}
+            className="hover:text-cyan-500 dark:hover:text-cyan-400 underline transition-colors cursor-pointer"
+          >
+            Privacy Policy
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => openLegalModal('terms')}
+            className="hover:text-cyan-500 dark:hover:text-cyan-400 underline transition-colors cursor-pointer"
+          >
+            Terms of Service
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => openLegalModal('refund')}
+            className="hover:text-cyan-500 dark:hover:text-cyan-400 underline transition-colors cursor-pointer"
+          >
+            Refund & Fee Policy
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => openLegalModal('cookie')}
+            className="hover:text-cyan-500 dark:hover:text-cyan-400 underline transition-colors cursor-pointer"
+          >
+            Cookie Policy
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => openLegalModal('licenses')}
+            className="hover:text-cyan-500 dark:hover:text-cyan-400 underline transition-colors cursor-pointer"
+          >
+            Business & Licenses
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => openLegalModal('data-deletion')}
+            className="text-rose-500 dark:text-rose-400 hover:underline transition-colors cursor-pointer"
+          >
+            Data Deletion Request
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+          <span>Dhanalakshmi College of Engineering, Chennai</span>
+          <span className="hidden sm:inline">•</span>
+          <span>Transport Desk: +91 94443 90150</span>
+          <span className="hidden sm:inline">•</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Free Campus Transit Service</span>
+        </div>
       </footer>
 
       {/* GOOGLE ACCOUNT CHOOSER MODAL */}

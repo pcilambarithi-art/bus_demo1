@@ -34,13 +34,22 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({ isOpen, onCl
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const [autoSpeak, setAutoSpeak] = useState<boolean>(true);
 
-  // Stop speaking when modal closes
+  // Stop speaking when modal closes & close on Escape key
   useEffect(() => {
     if (!isOpen) {
       gracefulVoice.stop();
       setSpeakingIndex(null);
     }
-  }, [isOpen]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleSpeak = (text: string, index: number) => {
     if (speakingIndex === index) {

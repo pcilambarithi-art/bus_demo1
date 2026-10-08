@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBus } from '../context/BusContext';
 import { AlertTriangle, Phone, ShieldAlert, X, CheckCircle2 } from 'lucide-react';
 import { sound } from '../utils/sound';
@@ -6,6 +6,18 @@ import { sound } from '../utils/sound';
 export const SosModal: React.FC = () => {
   const { isSosModalOpen, setIsSosModalOpen, selectedBus, student } = useBus();
   const [beaconSent, setBeaconSent] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSosModalOpen) {
+        setIsSosModalOpen(false);
+      }
+    };
+    if (isSosModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSosModalOpen, setIsSosModalOpen]);
 
   if (!isSosModalOpen) return null;
 

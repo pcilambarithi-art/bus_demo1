@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   Info,
   Volume2,
+  Shield,
+  Cookie,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -45,6 +48,7 @@ export const ProfileScreen: React.FC = () => {
     setIsApkModalOpen,
     setIsSosModalOpen,
     logout,
+    openLegalModal,
   } = useBus();
 
   const [showQrModal, setShowQrModal] = useState(false);
@@ -482,7 +486,76 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* OPTION 8: About & Version */}
+        {/* OPTION 8: Legal, Privacy & Terms Hub */}
+        <div className="py-3.5">
+          <div
+            onClick={() => openLegalModal('privacy')}
+            className="flex items-center justify-between cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-500 flex items-center justify-center">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold dark:text-white text-slate-800 group-hover:text-cyan-400 transition-colors">
+                  Privacy, Terms & Refund Policies
+                </h4>
+                <p className="text-xs text-slate-400">
+                  DPDP compliance, transit rules & fee transparency
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
+
+        {/* OPTION 9: Cookie & Storage Preferences */}
+        <div className="py-3.5">
+          <div
+            onClick={() => openLegalModal('cookie')}
+            className="flex items-center justify-between cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                <Cookie className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold dark:text-white text-slate-800 group-hover:text-cyan-400 transition-colors">
+                  Cookie & Local Storage Audit
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Inspect and manage local session keys & cache
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
+
+        {/* OPTION 10: Data Deletion & Privacy Rights */}
+        <div className="py-3.5">
+          <div
+            onClick={() => openLegalModal('data-deletion')}
+            className="flex items-center justify-between cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center">
+                <Trash2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-rose-500 transition-colors">
+                  Data Deletion & Rights Request
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Purge cached data or submit permanent erasure ticket
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
+
+        {/* OPTION 11: About & Version */}
         <div className="py-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -520,7 +593,11 @@ export const ProfileScreen: React.FC = () => {
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
           <div className="relative w-full max-w-sm rounded-3xl dark:bg-[#0B132B] bg-white p-6 text-center border dark:border-white/15 border-slate-200 shadow-2xl">
             <div className="w-12 h-12 mx-auto mb-2 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-md bg-white">
-              <img src="./app-logo.jpg" alt="DCE Logo" className="w-full h-full object-cover" />
+              <img
+                src="./app-logo.jpg"
+                alt="Dhanalakshmi College of Engineering Official Crest"
+                className="w-full h-full object-cover"
+              />
             </div>
             <h3 className="font-extrabold text-base dark:text-white text-slate-900 mb-1">
               DCE Digital Transport Pass

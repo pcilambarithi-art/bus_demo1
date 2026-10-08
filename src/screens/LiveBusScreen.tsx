@@ -203,7 +203,7 @@ export const LiveBusScreen: React.FC = () => {
                 <img
                   key={selectedBus.id}
                   src={selectedBus.busImage}
-                  alt={selectedBus.busNumber}
+                  alt={`DCE College Bus ${selectedBus.busNumber} fleet thumbnail`}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -307,7 +307,7 @@ export const LiveBusScreen: React.FC = () => {
                 <img
                   key={selectedBus.id}
                   src={selectedBus.busImage}
-                  alt={selectedBus.busNumber}
+                  alt={`DCE College Bus ${selectedBus.busNumber} route banner`}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />

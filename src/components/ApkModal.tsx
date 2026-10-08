@@ -22,6 +22,18 @@ export const ApkModal: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isApkModalOpen) {
+        setIsApkModalOpen(false);
+      }
+    };
+    if (isApkModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isApkModalOpen, setIsApkModalOpen]);
+
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();

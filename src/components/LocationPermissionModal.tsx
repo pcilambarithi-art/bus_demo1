@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBus } from '../context/BusContext';
 import {
   MapPin,
@@ -22,6 +22,18 @@ export const LocationPermissionModal: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLocationModalOpen) {
+        setIsLocationModalOpen(false);
+      }
+    };
+    if (isLocationModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLocationModalOpen, setIsLocationModalOpen]);
 
   if (!isLocationModalOpen) return null;
 

@@ -60,6 +60,48 @@ export type ConnectionStatus = 'live' | 'reconnecting' | 'offline';
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ActiveTab = 'home' | 'live' | 'route' | 'profile';
 export type LocationPermissionState = 'prompt' | 'granted' | 'denied' | 'unavailable';
+export type LegalTab = 'privacy' | 'terms' | 'refund' | 'cookie' | 'licenses' | 'data-deletion';
+
+export type GpsHealth = 'active' | 'weak' | 'offline';
+export type StationEventState = 'IDLE' | 'APPROACHING' | 'ARRIVED' | 'WAITING' | 'DEPARTED';
+
+export interface StationLiveStatus {
+  stationId: string;
+  stationName: string;
+  shortName: string;
+  sequence: number;
+  lat: number;
+  lng: number;
+  approachRadiusMeters: number;
+  arrivalRadiusMeters: number;
+  state: StationEventState;
+  arrivalTime: string | null;
+  departureTime: string | null;
+  distanceMeters: number;
+  etaMinutes: number;
+  isCurrentStation?: boolean;
+  isNextStation?: boolean;
+}
+
+export interface StationNotificationRecord {
+  id: string;
+  busNumber: string;
+  stationId: string;
+  stationName: string;
+  sequence: number;
+  event: 'APPROACHING' | 'ARRIVED' | 'DEPARTED' | 'DESTINATION';
+  eventLabel: string;
+  indicator: 'green' | 'red' | 'yellow';
+  timeFormatted: string;
+  timestamp: number;
+  speedKmh: number;
+  distanceMeters?: number;
+  etaMinutes?: number;
+  nextStationName?: string;
+  nextStationEtaMinutes?: number;
+  title: string;
+  message: string;
+}
 
 export interface BusTelemetry {
   lat: number;
@@ -69,12 +111,19 @@ export interface BusTelemetry {
   currentWaypointIndex: number;
   currentStopIndex: number;
   nextStop: BusStop;
+  currentStation?: BusStop | null;
   distanceToNextStopMeters: number;
   distanceToStudentStopMeters: number;
   distanceToStudentMeters?: number;
   etaMinutes: number;
   status: BusMovementStatus;
+  statusIndicator?: 'green' | 'red' | 'yellow';
+  statusLabel?: string;
   lastUpdated: string;
+  secondsSinceLastUpdate?: number;
+  gpsHealth?: GpsHealth;
+  gpsHealthLabel?: string;
+  stationStates?: Record<string, StationLiveStatus>;
 }
 
 export interface ProximityAlert {

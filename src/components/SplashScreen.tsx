@@ -51,7 +51,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         <div className="relative w-24 h-24 rounded-3xl overflow-hidden bg-slate-900/90 border border-cyan-400/40 shadow-[0_0_35px_rgba(6,182,212,0.4)] backdrop-blur-2xl flex items-center justify-center p-1">
           <img
             src="./app-logo.jpg"
-            alt="DCE College Bus Logo"
+            alt="Dhanalakshmi College of Engineering Official Crest"
             className="w-full h-full object-cover rounded-2xl"
           />
           {/* Live indicator dot */}

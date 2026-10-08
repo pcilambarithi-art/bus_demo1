@@ -11,7 +11,7 @@ import {
   MapPin,
   Users,
 } from 'lucide-react';
-
+import { BusStatusIndicator } from '../components/BusStatusIndicator';
 export const HomeScreen: React.FC = () => {
   const {
     student,
@@ -87,7 +87,7 @@ export const HomeScreen: React.FC = () => {
                 <div className="relative w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-cyan-400/30">
                   <img
                     src={bus.busImage}
-                    alt={bus.busNumber}
+                    alt={`DCE College Bus ${bus.busNumber} (${bus.plateNumber})`}
                     className="w-full h-full object-cover"
                   />
                   {isSelected && (
@@ -152,7 +152,7 @@ export const HomeScreen: React.FC = () => {
 
       {/* HERO GLASS BUS CARD */}
       <GlassCard
-        onClick={() => setActiveTab('live')}
+        onClick={() => setActiveTab('route')}
         interactive
         hoverEffect
         className="p-3.5 sm:p-6 group"
@@ -165,7 +165,7 @@ export const HomeScreen: React.FC = () => {
                 <img
                   key={selectedBus.id}
                   src={selectedBus.busImage}
-                  alt={selectedBus.busNumber}
+                  alt={`DCE College Bus ${selectedBus.busNumber} (${selectedBus.plateNumber})`}
                   className="w-full h-full object-cover transition-opacity duration-300"
                 />
                 <span className="absolute bottom-0 inset-x-0 bg-black/75 backdrop-blur-sm text-[8px] font-mono text-center text-cyan-300 font-bold leading-tight py-0.5">
@@ -177,7 +177,7 @@ export const HomeScreen: React.FC = () => {
                   <h3 className="text-base sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight font-sans truncate">
                     {selectedBus.busNumber}
                   </h3>
-                  {/* LIVE Status Badge */}
+                  <BusStatusIndicator telemetry={telemetry} size="xs" />
                   <span className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[11px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                     LIVE
@@ -189,9 +189,9 @@ export const HomeScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Tap to View Full Screen Indicator */}
+            {/* Tap to View Radar Indicator */}
             <div className="flex items-center gap-1 text-xs font-bold text-cyan-500 dark:text-cyan-400 group-hover:translate-x-1 transition-transform shrink-0 pl-2">
-              <span className="hidden sm:inline">Track Live</span>
+              <span className="hidden sm:inline">Track Live Radar</span>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
@@ -255,7 +255,7 @@ export const HomeScreen: React.FC = () => {
               <img
                 key={selectedBus.id}
                 src={selectedBus.busImage}
-                alt={selectedBus.busNumber}
+                alt={`Real-Time Telemetry Feed: DCE Bus ${selectedBus.busNumber}`}
                 className="w-full h-full object-cover object-center transition-all duration-700 group-hover:scale-105 animate-[fadeIn_0.35s_ease-out]"
               />
               {/* Gradient overlay */}

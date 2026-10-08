@@ -9,9 +9,11 @@ import { AiAssistantModal } from './components/AiAssistantModal';
 import { ApkModal } from './components/ApkModal';
 import { SosModal } from './components/SosModal';
 import { LocationPermissionModal } from './components/LocationPermissionModal';
+import { LegalComplianceModal } from './components/LegalComplianceModal';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { Footer } from './components/Footer';
 
 import { HomeScreen } from './screens/HomeScreen';
-import { LiveBusScreen } from './screens/LiveBusScreen';
 import { RouteScreen } from './screens/RouteScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { DriverScreen } from './screens/DriverScreen';
@@ -55,11 +57,13 @@ const MainAppLayout: React.FC = () => {
         {/* Main Content Area */}
         <main className="flex-1 w-full min-w-0 p-3 sm:p-5 lg:p-7 overflow-y-auto">
           {activeTab === 'home' && <HomeScreen />}
-          {activeTab === 'live' && <LiveBusScreen />}
-          {activeTab === 'route' && <RouteScreen />}
+          {(activeTab === 'live' || activeTab === 'route') && <RouteScreen />}
           {activeTab === 'profile' && <ProfileScreen />}
         </main>
       </div>
+
+      {/* Institutional Campus Footer */}
+      <Footer />
 
       {/* Floating Glass Bottom Navigation Bar (Mobile / Tablet only - Requirement 8) */}
       <BottomNav />
@@ -96,6 +100,8 @@ export const App: React.FC = () => {
       <AppRouter>
         <AppContent />
       </AppRouter>
+      <LegalComplianceModal />
+      <CookieConsentBanner />
     </BusProvider>
   );
 };

@@ -14,7 +14,8 @@ import type {
   ActivityLog,
   AdminUser,
   StaffUser,
-  SyncPayload
+  SyncPayload,
+  StationNotificationRecord,
 } from '../types/bus';
 import { BUS_ROUTES, BUS_VEHICLES } from '../data/busRoutes';
 
@@ -975,6 +976,108 @@ class BusApiService {
         localStorage.setItem(STAFF_LIST_KEY, JSON.stringify(list));
       } catch (_) {}
     }
+  }
+
+  /**
+   * Post real-time driver GPS packet to server
+   */
+  public async postDriverGps(payload: {
+    busId?: string;
+    busNumber: string;
+    latitude: number;
+    longitude: number;
+    speed: number;
+    heading?: number;
+    accuracy?: number;
+    timestamp?: number;
+  }): Promise<{ success: boolean; bus?: any; events?: StationNotificationRecord[] }> {
+    try {
+      return await this.request('/api/driver/telemetry', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.warn('[API Service] Failed to send driver telemetry to server:', err);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Fetch all live buses and station geofence telemetry
+   */
+  public async getLiveBuses(): Promise<any[]> {
+    try {
+      const res = await this.request<{ success: boolean; buses: any[] }>('/api/live/buses');
+      return res.buses || [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Fetch station notification history
+   */
+  public async getStationHistory(busNumber?: string): Promise<StationNotificationRecord[]> {
+    try {
+      const url = busNumber ? `/api/live/history?busNumber=${encodeURIComponent(busNumber)}` : '/api/live/history';
+      const res = await this.request<{ success: boolean; history: StationNotificationRecord[] }>(url);
+      return res.history || [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Connect to Server-Sent Events (SSE) live telemetry stream
+   */
+  public connectLiveSseStream(
+    onTelemetry: (busState: any, events: StationNotificationRecord[]) => void
+  ): () => void {
+    if (typeof window === 'undefined' || !('EventSource' in window)) {
+      return () => {};
+    }
+
+    let eventSource: EventSource | null = null;
+    let isClosed = false;
+
+    const connect = () => {
+      if (isClosed) return;
+      try {
+        const streamUrl = `${API_BASE_URL || ''}/api/live/stream`;
+        eventSource = new EventSource(streamUrl);
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'GPS_TELEMETRY_UPDATE' && data.bus) {
+              onTelemetry(data.bus, data.events || []);
+            } else if (data.type === 'INIT_SNAPSHOT' && Array.isArray(data.buses)) {
+              data.buses.forEach((b: any) => onTelemetry(b, []));
+            }
+          } catch (_) {}
+        };
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          if (!isClosed) {
+            setTimeout(connect, 3000);
+          }
+        };
+      } catch (_) {}
+    };
+
+    connect();
+
+    return () => {
+      isClosed = true;
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    };
   }
 
   private logLocalActivity(action: string, target: string, details: string) {
