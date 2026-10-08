@@ -14,24 +14,69 @@ export interface BusStatusInfo {
   glowColor: string;
 }
 
+/**
+ * Authoritatively determines 3-state operational status:
+ * 🟢 Green  — At Station (Bus has reached or is halted at station, speed <= 2 km/h)
+ * 🔴 Red    — Moving to Next Station (Bus departed and en route, speed > 2 km/h)
+ * 🟡 Yellow — Destination / Very Close (Bus has arrived or is near final terminus)
+ */
 export function determineBusStatus(telemetry: BusTelemetry): BusStatusInfo {
-  const isNearDestination =
-    telemetry.distanceToStudentStopMeters <= 300 ||
-    telemetry.status === 'ARRIVING';
-  const isAtStation =
-    telemetry.status === 'ARRIVED' ||
-    (telemetry.speedKmh <= 2 && telemetry.distanceToNextStopMeters <= 60);
-
-  if (isNearDestination) {
+  // 1. Primary: Use authoritative statusIndicator from server telemetry engine / BusContext
+  if (telemetry.statusIndicator === 'yellow') {
     return {
       type: 'destination',
       color: 'yellow',
       label: 'Destination / Very Close',
-      description: 'Bus has reached or is very close to destination',
+      description: 'Bus has reached or is very close to final destination',
       badgeBg: 'bg-amber-400/15',
       badgeBorder: 'border-amber-400/40',
       badgeText: 'text-amber-400',
-      glowColor: 'shadow-[0_0_12px_rgba(245,158,11,0.6)]',
+      glowColor: 'shadow-[0_0_12px_rgba(245,158,11,0.7)]',
+    };
+  }
+
+  if (telemetry.statusIndicator === 'green') {
+    return {
+      type: 'at_station',
+      color: 'green',
+      label: 'At Station',
+      description: 'Bus is waiting / stopped at the station (boarding active)',
+      badgeBg: 'bg-emerald-500/15',
+      badgeBorder: 'border-emerald-400/40',
+      badgeText: 'text-emerald-400',
+      glowColor: 'shadow-[0_0_12px_rgba(16,185,129,0.7)]',
+    };
+  }
+
+  if (telemetry.statusIndicator === 'red') {
+    return {
+      type: 'moving',
+      color: 'red',
+      label: 'Moving to Next Station',
+      description: 'Bus is currently moving toward next station',
+      badgeBg: 'bg-rose-500/15',
+      badgeBorder: 'border-rose-400/40',
+      badgeText: 'text-rose-400',
+      glowColor: 'shadow-[0_0_12px_rgba(244,63,94,0.7)]',
+    };
+  }
+
+  // 2. Fallback if statusIndicator is not pre-computed:
+  const isDestination = telemetry.status === 'ARRIVING';
+  const isAtStation =
+    telemetry.status === 'ARRIVED' ||
+    (telemetry.speedKmh <= 2 && telemetry.distanceToNextStopMeters <= 60);
+
+  if (isDestination) {
+    return {
+      type: 'destination',
+      color: 'yellow',
+      label: 'Destination / Very Close',
+      description: 'Bus has reached or is very close to final destination',
+      badgeBg: 'bg-amber-400/15',
+      badgeBorder: 'border-amber-400/40',
+      badgeText: 'text-amber-400',
+      glowColor: 'shadow-[0_0_12px_rgba(245,158,11,0.7)]',
     };
   }
 
@@ -40,11 +85,11 @@ export function determineBusStatus(telemetry: BusTelemetry): BusStatusInfo {
       type: 'at_station',
       color: 'green',
       label: 'At Station',
-      description: 'Bus is waiting / stopped at the station',
+      description: 'Bus is waiting / stopped at the station (boarding active)',
       badgeBg: 'bg-emerald-500/15',
       badgeBorder: 'border-emerald-400/40',
       badgeText: 'text-emerald-400',
-      glowColor: 'shadow-[0_0_12px_rgba(16,185,129,0.6)]',
+      glowColor: 'shadow-[0_0_12px_rgba(16,185,129,0.7)]',
     };
   }
 
@@ -56,7 +101,7 @@ export function determineBusStatus(telemetry: BusTelemetry): BusStatusInfo {
     badgeBg: 'bg-rose-500/15',
     badgeBorder: 'border-rose-400/40',
     badgeText: 'text-rose-400',
-    glowColor: 'shadow-[0_0_12px_rgba(244,63,94,0.6)]',
+    glowColor: 'shadow-[0_0_12px_rgba(244,63,94,0.7)]',
   };
 }
 
@@ -65,6 +110,8 @@ interface BusStatusIndicatorProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   className?: string;
+  onClick?: () => void;
+  interactive?: boolean;
 }
 
 export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
@@ -72,6 +119,8 @@ export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
   size = 'md',
   showLabel = false,
   className = '',
+  onClick,
+  interactive = false,
 }) => {
   const status = determineBusStatus(telemetry);
 
@@ -82,14 +131,24 @@ export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
     lg: { circle: 'w-8 h-8', icon: 'w-4 h-4', text: 'text-sm' },
   }[size];
 
+  const tooltipTitle = `${
+    status.type === 'destination'
+      ? '🟡 Destination / Very Close'
+      : status.type === 'at_station'
+      ? '🟢 At Station (Waiting/Boarding)'
+      : '🔴 Moving to Next Station'
+  }${onClick || interactive ? ' — Click to view status purpose & details' : ''}`;
+
   const renderIcon = () => {
     switch (status.type) {
       case 'destination':
         // 🟡 Yellow — Destination / Very Close: Location Pin with Check Mark
         return (
           <div
-            className={`${sizeStyles.circle} rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-all`}
-            title="🟡 Yellow — Destination / Very Close"
+            className={`${sizeStyles.circle} rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-transform ${
+              onClick || interactive ? 'hover:scale-110 active:scale-95 cursor-pointer ring-2 ring-amber-400/40' : ''
+            }`}
+            title={tooltipTitle}
           >
             <svg
               className={`${sizeStyles.icon} text-slate-950`}
@@ -105,8 +164,10 @@ export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
         // 🟢 Green — At Station: Station check mark
         return (
           <div
-            className={`${sizeStyles.circle} rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-all`}
-            title="🟢 Green — At Station"
+            className={`${sizeStyles.circle} rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-transform ${
+              onClick || interactive ? 'hover:scale-110 active:scale-95 cursor-pointer ring-2 ring-emerald-400/40' : ''
+            }`}
+            title={tooltipTitle}
           >
             <svg
               className={`${sizeStyles.icon} text-slate-950`}
@@ -127,8 +188,10 @@ export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
         // 🔴 Red — Moving to Next Station: Forward Route Arrow
         return (
           <div
-            className={`${sizeStyles.circle} rounded-full bg-rose-500 border border-rose-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-all`}
-            title="🔴 Red — Moving to Next Station"
+            className={`${sizeStyles.circle} rounded-full bg-rose-500 border border-rose-300 flex items-center justify-center shrink-0 ${status.glowColor} transition-transform ${
+              onClick || interactive ? 'hover:scale-110 active:scale-95 cursor-pointer ring-2 ring-rose-400/40' : ''
+            }`}
+            title={tooltipTitle}
           >
             <svg
               className={`${sizeStyles.icon} text-white`}
@@ -147,8 +210,31 @@ export const BusStatusIndicator: React.FC<BusStatusIndicatorProps> = ({
     }
   };
 
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className={`inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded-full ${className}`}
+        aria-label={tooltipTitle}
+      >
+        {renderIcon()}
+        {showLabel && (
+          <span
+            className={`font-bold tracking-tight ${status.badgeText} ${sizeStyles.text}`}
+          >
+            {status.label}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return (
-    <div className={`inline-flex items-center gap-2 ${className}`}>
+    <div className={`inline-flex items-center gap-1.5 ${className}`}>
       {renderIcon()}
       {showLabel && (
         <span

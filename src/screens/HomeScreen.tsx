@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useBus } from '../context/BusContext';
 import { GlassCard } from '../components/GlassCard';
 import { InteractiveMap } from '../components/InteractiveMap';
@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { BusStatusIndicator } from '../components/BusStatusIndicator';
+import { BusStatusModal } from '../components/BusStatusModal';
 export const HomeScreen: React.FC = () => {
   const {
     student,
@@ -25,6 +26,8 @@ export const HomeScreen: React.FC = () => {
     allBuses,
     selectBus,
   } = useBus();
+
+  const [isStatusGuideOpen, setIsStatusGuideOpen] = useState(false);
 
   // Dynamic time greeting
   const greeting = useMemo(() => {
@@ -177,7 +180,12 @@ export const HomeScreen: React.FC = () => {
                   <h3 className="text-base sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight font-sans truncate">
                     {selectedBus.busNumber}
                   </h3>
-                  <BusStatusIndicator telemetry={telemetry} size="xs" />
+                  <BusStatusIndicator
+                    telemetry={telemetry}
+                    size="xs"
+                    onClick={() => setIsStatusGuideOpen(true)}
+                    interactive={true}
+                  />
                   <span className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[11px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                     LIVE
@@ -328,6 +336,14 @@ export const HomeScreen: React.FC = () => {
         />
       </div>
 
+      {/* Purpose Guide Modal */}
+      <BusStatusModal
+        isOpen={isStatusGuideOpen}
+        onClose={() => setIsStatusGuideOpen(false)}
+        bus={selectedBus}
+        telemetry={telemetry}
+        onOpenStationHistory={() => setActiveTab('route')}
+      />
     </div>
   );
 };

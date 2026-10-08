@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBus } from '../context/BusContext';
 import type { ActiveTab } from '../types/bus';
 import {
@@ -15,6 +15,7 @@ import { formatDistance } from '../utils/geo';
 import { EtaDisplay } from './EtaDisplay';
 import { BusStatusCardPill } from './BusStatusCardPill';
 import { BusStatusIndicator, determineBusStatus } from './BusStatusIndicator';
+import { BusStatusModal } from './BusStatusModal';
 
 interface SidebarNavTab {
   id: ActiveTab;
@@ -45,6 +46,7 @@ export const DesktopSidebar: React.FC = () => {
     openLegalModal,
   } = useBus();
 
+  const [isStatusGuideOpen, setIsStatusGuideOpen] = useState(false);
   const statusInfo = determineBusStatus(telemetry);
 
   return (
@@ -143,7 +145,8 @@ export const DesktopSidebar: React.FC = () => {
             bus={selectedBus}
             telemetry={telemetry}
             onClick={() => setActiveTab('route')}
-            showSubtitle={false}
+            onOpenStationHistory={() => setActiveTab('route')}
+            showSubtitle={true}
           />
 
           {/* Telemetry Metrics Row: Status Type + Speed + ETA */}
@@ -153,14 +156,24 @@ export const DesktopSidebar: React.FC = () => {
                 Current State
               </span>
               <div className="flex items-center gap-1.5">
-                <BusStatusIndicator telemetry={telemetry} size="xs" />
-                <span className={`text-[10px] font-bold truncate ${statusInfo.badgeText}`}>
+                <BusStatusIndicator
+                  telemetry={telemetry}
+                  size="xs"
+                  onClick={() => setIsStatusGuideOpen(true)}
+                  interactive={true}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsStatusGuideOpen(true)}
+                  className={`text-[10px] font-bold truncate text-left hover:underline ${statusInfo.badgeText}`}
+                  title="Click to view status guide"
+                >
                   {statusInfo.type === 'destination'
                     ? 'Destination'
                     : statusInfo.type === 'at_station'
                     ? 'At Station'
                     : 'Moving'}
-                </span>
+                </button>
               </div>
             </div>
 
@@ -233,6 +246,15 @@ export const DesktopSidebar: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Purpose Guide Modal */}
+      <BusStatusModal
+        isOpen={isStatusGuideOpen}
+        onClose={() => setIsStatusGuideOpen(false)}
+        bus={selectedBus}
+        telemetry={telemetry}
+        onOpenStationHistory={() => setActiveTab('route')}
+      />
     </aside>
   );
 };

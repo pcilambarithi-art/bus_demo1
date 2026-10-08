@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { StreetViewModal } from '../components/StreetViewModal';
 import { StationHistoryModal } from '../components/StationHistoryModal';
+import { BusStatusModal } from '../components/BusStatusModal';
 import type { BusStop } from '../types/bus';
+import { Radio } from 'lucide-react';
 
 export const RouteScreen: React.FC = () => {
   const {
@@ -40,6 +42,7 @@ export const RouteScreen: React.FC = () => {
   const [streetViewStop, setStreetViewStop] = useState<BusStop | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isStatusGuideOpen, setIsStatusGuideOpen] = useState(false);
   const [mobileActiveView, setMobileActiveView] = useState<'both' | 'map' | 'stops'>('both');
 
   const filteredStops = selectedRoute.stops.filter((stop) =>
@@ -132,6 +135,7 @@ export const RouteScreen: React.FC = () => {
               telemetry={telemetry}
               className="w-full sm:w-auto"
               showSubtitle={true}
+              onOpenStationHistory={() => setIsHistoryModalOpen(true)}
             />
 
             <select
@@ -210,10 +214,20 @@ export const RouteScreen: React.FC = () => {
                     LIVE RADAR
                   </span>
                   <span className="text-slate-400">|</span>
-                  <BusStatusIndicator telemetry={telemetry} size="xs" />
-                  <span className={`text-[10px] font-bold ${statusInfo.badgeText}`}>
+                  <BusStatusIndicator
+                    telemetry={telemetry}
+                    size="xs"
+                    onClick={() => setIsStatusGuideOpen(true)}
+                    interactive={true}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusGuideOpen(true)}
+                    className={`text-[10px] font-bold hover:underline cursor-pointer ${statusInfo.badgeText}`}
+                    title="Click to view status guide"
+                  >
                     {statusInfo.label}
-                  </span>
+                  </button>
                   <span className="text-slate-400 hidden sm:inline">|</span>
                   <span className={`text-[10px] font-mono font-bold hidden sm:inline ${
                     telemetry.gpsHealth === 'active'
@@ -336,10 +350,15 @@ export const RouteScreen: React.FC = () => {
                   </div>
 
                   {/* 3-State Status Badge */}
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${statusInfo.badgeBg} ${statusInfo.badgeBorder} ${statusInfo.badgeText} text-xs font-bold`}>
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusGuideOpen(true)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${statusInfo.badgeBg} ${statusInfo.badgeBorder} ${statusInfo.badgeText} text-xs font-bold hover:scale-[1.02] transition-transform cursor-pointer`}
+                    title="Click to view indicator purpose & details"
+                  >
                     <BusStatusIndicator telemetry={telemetry} size="xs" />
                     <span className="uppercase text-[10px] tracking-wider">{statusInfo.label}</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Driver Specs & Quick Call */}
@@ -373,6 +392,124 @@ export const RouteScreen: React.FC = () => {
                     </a>
                   </div>
                 </div>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Real-Time Status Indicator Purpose Guide & 3 States Showcase */}
+          <GlassCard className="p-4 sm:p-5 border dark:border-cyan-500/20 border-cyan-400/30">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b dark:border-white/10 border-slate-200">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                  <Radio className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm dark:text-white text-slate-900 tracking-tight">
+                    Status Indicator Purpose &amp; Live States
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Circular button replaces legacy bus icon to communicate real-time station cycle
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsStatusGuideOpen(true)}
+                className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-cyan-400 hover:text-cyan-300 dark:bg-white/5 bg-slate-100 border dark:border-white/10 border-slate-200 transition-colors"
+              >
+                Detailed Guide
+              </button>
+            </div>
+
+            {/* 3 UI Variants Side-by-Side (Green At Station, Red Next Station, Yellow Destination) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Variant 1: 🟢 Green - At Station */}
+              <div
+                onClick={() => setIsStatusGuideOpen(true)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusInfo.type === 'at_station'
+                    ? 'bg-emerald-500/15 border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400'
+                    : 'dark:bg-slate-950/40 bg-slate-50 border-slate-200 dark:border-white/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center text-slate-950 shadow-[0_0_8px_rgba(16,185,129,0.7)] shrink-0">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">🟢 At Station</span>
+                  </div>
+                  {statusInfo.type === 'at_station' && (
+                    <span className="text-[9px] font-mono font-bold bg-emerald-400 text-slate-950 px-1.5 py-0.2 rounded-full">
+                      ACTIVE NOW
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  Bus has reached station and is halted for boarding. Speed &le; 2 km/h.
+                </p>
+              </div>
+
+              {/* Variant 2: 🔴 Red - Moving to Next Station */}
+              <div
+                onClick={() => setIsStatusGuideOpen(true)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusInfo.type === 'moving'
+                    ? 'bg-rose-500/15 border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.25)] ring-1 ring-rose-400'
+                    : 'dark:bg-slate-950/40 bg-slate-50 border-slate-200 dark:border-white/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-rose-500 border border-rose-300 flex items-center justify-center text-white shadow-[0_0_8px_rgba(244,63,94,0.7)] shrink-0">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-black text-rose-400">🔴 Next Station</span>
+                  </div>
+                  {statusInfo.type === 'moving' && (
+                    <span className="text-[9px] font-mono font-bold bg-rose-400 text-slate-950 px-1.5 py-0.2 rounded-full">
+                      ACTIVE NOW
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  Bus departed station and is travelling en route. Speed &gt; 2 km/h.
+                </p>
+              </div>
+
+              {/* Variant 3: 🟡 Yellow - Destination */}
+              <div
+                onClick={() => setIsStatusGuideOpen(true)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusInfo.type === 'destination'
+                    ? 'bg-amber-400/15 border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] ring-1 ring-amber-400'
+                    : 'dark:bg-slate-950/40 bg-slate-50 border-slate-200 dark:border-white/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.7)] shrink-0">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm-1.25 10.5l-3-3 1.41-1.41L10.75 9.68l4.84-4.84 1.41 1.41-6.25 6.25z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-black text-amber-400">🟡 Destination</span>
+                  </div>
+                  {statusInfo.type === 'destination' && (
+                    <span className="text-[9px] font-mono font-bold bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full">
+                      ACTIVE NOW
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  Bus has reached or is very close (&le; 120m) to the final terminus.
+                </p>
               </div>
             </div>
           </GlassCard>
@@ -585,6 +722,15 @@ export const RouteScreen: React.FC = () => {
         busNumber={selectedBus.busNumber}
         records={stationNotificationHistory}
         onRefresh={refreshStationHistory}
+      />
+
+      {/* Bus Status & Movement Indicator Purpose Guide Modal */}
+      <BusStatusModal
+        isOpen={isStatusGuideOpen}
+        onClose={() => setIsStatusGuideOpen(false)}
+        bus={selectedBus}
+        telemetry={telemetry}
+        onOpenStationHistory={() => setIsHistoryModalOpen(true)}
       />
 
     </div>

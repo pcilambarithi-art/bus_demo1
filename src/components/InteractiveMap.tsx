@@ -47,6 +47,7 @@ import { StreetViewModal } from './StreetViewModal';
 import { PlacesSearchBar } from './PlacesSearchBar';
 import { getOsrmRoute } from '../services/osrm';
 import type { BusStop, BusTelemetry } from '../types/bus';
+import { determineBusStatus } from './BusStatusIndicator';
 
 interface InteractiveMapProps {
   className?: string;
@@ -114,13 +115,12 @@ const GOOGLE_LIGHT_STYLES = [
  * 🟢 Green  — At Station
  */
 export const getBusStatusBadgeHtml = (telemetry: BusTelemetry): string => {
-  const isNearDestination = telemetry.distanceToStudentStopMeters <= 300 || telemetry.status === 'ARRIVING';
-  const isAtStation = telemetry.status === 'ARRIVED' || (telemetry.speedKmh <= 2 && telemetry.distanceToNextStopMeters <= 60);
+  const status = determineBusStatus(telemetry);
 
-  if (isNearDestination) {
+  if (status.type === 'destination') {
     // 🟡 Yellow — Destination / Very Close (Pin with Check Mark / Target icon)
     return `
-      <div class="relative w-5 h-5 rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.7)]" title="Yellow: Destination / Very Close">
+      <div class="relative w-5 h-5 rounded-full bg-amber-400 border border-amber-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.7)]" title="🟡 Yellow: Destination / Very Close">
         <svg class="w-3 h-3 text-slate-950" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm-1.25 10.5l-3-3 1.41-1.41L10.75 9.68l4.84-4.84 1.41 1.41-6.25 6.25z"/>
         </svg>
@@ -128,10 +128,10 @@ export const getBusStatusBadgeHtml = (telemetry: BusTelemetry): string => {
     `;
   }
 
-  if (isAtStation) {
+  if (status.type === 'at_station') {
     // 🟢 Green — At Station (Station / Stop Shelter Check Mark)
     return `
-      <div class="relative w-5 h-5 rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.7)]" title="Green: At Station">
+      <div class="relative w-5 h-5 rounded-full bg-emerald-500 border border-emerald-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.7)]" title="🟢 Green: At Station (Waiting/Boarding)">
         <svg class="w-3 h-3 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -967,6 +967,30 @@ const InteractiveMapCore: React.FC<InteractiveMapProps> = ({
   // =========================================================================
   useEffect(() => {
     const startPos = currentPosRef.current;
+    // Update marker speed & 3-state status badge in real time on every telemetry change
+    if (mlBusMarkerRef.current) {
+      try {
+        const el = mlBusMarkerRef.current.getElement();
+        if (el) {
+          const speedEl = el.querySelector('span.font-mono');
+          if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const badgeEl = el.querySelector('.bus-status-badge-container');
+          if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
+        }
+      } catch (_) {}
+    }
+    if (busMarkerRef.current) {
+      try {
+        const iconEl = busMarkerRef.current.getElement();
+        if (iconEl) {
+          const speedEl = iconEl.querySelector('span.font-mono');
+          if (speedEl) speedEl.textContent = `${telemetry.speedKmh} km/h`;
+          const badgeEl = iconEl.querySelector('.bus-status-badge-container');
+          if (badgeEl) badgeEl.innerHTML = getBusStatusBadgeHtml(telemetry);
+        }
+      } catch (_) {}
+    }
+
     const targetPos: [number, number] = [telemetry.lat, telemetry.lng];
 
     if (startPos[0] === targetPos[0] && startPos[1] === targetPos[1]) return;

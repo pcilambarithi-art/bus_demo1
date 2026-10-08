@@ -736,9 +736,16 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (liveDriverGps && isLive) {
       speed = Math.round(liveDriverGps.speed);
     } else {
-      if (distToStudentStopMeters < 80 || distToNextStopMeters < 60) {
+      const terminalStop = selectedRoute.stops[selectedRoute.stops.length - 1];
+      const distToTerminal = terminalStop
+        ? calculateDistanceMeters(currentCoord[0], currentCoord[1], terminalStop.lat, terminalStop.lng)
+        : Infinity;
+
+      if (distToTerminal < 60 || idx >= routeWaypoints.length - 1) {
         speed = 0;
-      } else if (distToStudentStopMeters < 250 || distToNextStopMeters < 200) {
+      } else if (distToNextStopMeters < 50) {
+        speed = 0;
+      } else if (distToNextStopMeters < 180) {
         speed = 12;
       } else {
         const wobble = Math.sin(idx * 0.25) * 4;
@@ -776,16 +783,34 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       statusLabel = serverLiveBusState.statusLabel || (statusIndicator === 'green' ? 'At Station' : statusIndicator === 'yellow' ? 'Destination' : 'Moving');
       status = statusIndicator === 'green' ? 'ARRIVED' : statusIndicator === 'yellow' ? 'ARRIVING' : 'LIVE';
     } else {
-      const isNearDestination = distToStudentStopMeters <= 250;
-      const isAtStation = distToStudentStopMeters <= 60 || distToNextStopMeters <= 60 || speed <= 2;
+      const terminalStop = selectedRoute.stops[selectedRoute.stops.length - 1];
+      const distToTerminalMeters = terminalStop
+        ? calculateDistanceMeters(currentCoord[0], currentCoord[1], terminalStop.lat, terminalStop.lng)
+        : Infinity;
+
+      const isNearDestination =
+        distToTerminalMeters <= 120 ||
+        (idx >= routeWaypoints.length - 2 && routeWaypoints.length > 2);
+
+      let closestStop = nextStop;
+      let minStopDist = distToNextStopMeters;
+      selectedRoute.stops.forEach((s) => {
+        const d = calculateDistanceMeters(currentCoord[0], currentCoord[1], s.lat, s.lng);
+        if (d < minStopDist) {
+          minStopDist = d;
+          closestStop = s;
+        }
+      });
+
+      const isAtStation = minStopDist <= 70 && speed <= 5;
 
       if (isNearDestination) {
         statusIndicator = 'yellow';
-        statusLabel = 'Destination / Very Close';
+        statusLabel = `Destination (${terminalStop?.shortName || terminalStop?.name || 'College'})`;
         status = 'ARRIVING';
       } else if (isAtStation) {
         statusIndicator = 'green';
-        statusLabel = `At Station (${nextStop.shortName || nextStop.name})`;
+        statusLabel = `At Station (${closestStop.shortName || closestStop.name})`;
         status = 'ARRIVED';
       } else {
         statusIndicator = 'red';
