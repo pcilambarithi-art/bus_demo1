@@ -37,3 +37,8 @@ android/*.iml
 android/app/*.iml
 android/local.properties
 .gradle
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

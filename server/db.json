@@ -92,10 +92,10 @@
       "statusText": "Delayed (Updated by Staff)",
       "operationalStatus": "Delayed",
       "isActive": true,
-      "currentLat": 12.9249,
-      "currentLng": 80.1165,
-      "currentSpeed": 38,
-      "lastUpdated": "2026-09-29T08:49:59.852Z"
+      "currentLat": 12.9247,
+      "currentLng": 80.116,
+      "currentSpeed": 35,
+      "lastUpdated": "2026-10-09T09:57:30.693000Z"
     },
     {
       "id": "bus-04",
@@ -964,6 +964,15 @@
     }
   ],
   "activity_logs": [
+    {
+      "id": "log-1791516253510",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-09T03:24:13.510Z"
+    },
     {
       "id": "log-1791439959086",
       "adminId": "admin-01",
