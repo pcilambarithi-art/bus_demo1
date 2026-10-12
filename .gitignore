@@ -42,3 +42,9 @@ android/local.properties
 __pycache__/
 *.py[cod]
 *$py.class
+*.db
+*.sqlite3
+backend/data/*.db
+backend/data/logs/*
+backup_*/
+

@@ -965,6 +965,15 @@
   ],
   "activity_logs": [
     {
+      "id": "log-1791520788851",
+      "adminId": "admin-01",
+      "adminName": "DCE Transport Administrator",
+      "action": "ADMIN_LOGIN",
+      "target": "Web Portal",
+      "details": "Administrator logged into Web Admin Console",
+      "timestamp": "2026-10-09T04:39:48.851889Z"
+    },
+    {
       "id": "log-1791516253510",
       "adminId": "admin-01",
       "adminName": "DCE Transport Administrator",
