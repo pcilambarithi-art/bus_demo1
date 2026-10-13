@@ -141,5 +141,25 @@
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function() {
+        // When hosted on GitHub Pages from repository root (where /src/main.tsx is uncompiled),
+        // load the pre-compiled production bundle from ./assets/
+        var hasBuiltBundle = document.querySelector('script[src*="assets/index-"]');
+        if (!hasBuiltBundle && window.location.protocol !== 'file:' && window.location.port !== '5173') {
+          var css = document.createElement('link');
+          css.rel = 'stylesheet';
+          css.crossOrigin = 'anonymous';
+          css.href = './assets/app-bundle.css';
+          document.head.appendChild(css);
+
+          var js = document.createElement('script');
+          js.type = 'module';
+          js.crossOrigin = 'anonymous';
+          js.src = './assets/app-bundle.js';
+          document.body.appendChild(js);
+        }
+      })();
+    </script>
   </body>
 </html>
