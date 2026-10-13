@@ -65,6 +65,7 @@ class RaspberryPiBusAgent:
             cooldown_sec=self.config.announcement_cooldown_sec,
             audio_device=self.config.audio_device,
             audio_clips_dir=self.config.audio_clips_dir,
+            queue=self.queue,
             dry_run_audio=dry_run_audio
         )
         self.attendance_scanner = AttendanceScannerHandler(queue=self.queue, debounce_seconds=60)
@@ -75,6 +76,25 @@ class RaspberryPiBusAgent:
         )
         self.running = False
         self.last_heartbeat_ts = 0.0
+
+    def get_service_status(self) -> Dict[str, Any]:
+        """Returns comprehensive operational status and queue metrics for the Raspberry Pi bus agent."""
+        q_stats = self.queue.get_queue_stats()
+        recent_announcements = self.queue.get_played_announcements(limit=5)
+        return {
+            "deviceId": self.config.device_id,
+            "busId": self.config.bus_id,
+            "routeId": self.config.route_id,
+            "mode": "SIMULATED_TEST_MODE" if self.config.test_mode else "PRODUCTION_HARDWARE_MODE",
+            "gpsFixStatus": self.gps_reader.last_fix_status,
+            "lastValidFix": self.gps_reader.last_valid_fix,
+            "serverOnline": self.sync_client.server_online,
+            "consecutiveSyncFailures": self.sync_client.consecutive_failures,
+            "pendingGpsCount": q_stats["pendingGpsCount"],
+            "pendingAttendanceCount": q_stats["pendingAttendanceCount"],
+            "recentPlayedAnnouncements": recent_announcements
+        }
+
 
     def process_gps_fix(self, fix: Dict[str, Any], force_offline: bool = False) -> Dict[str, Any]:
         """

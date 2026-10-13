@@ -141,16 +141,41 @@ export async function queryTransitAssistant(
     return isTanglish ? NON_TRANSIT_REFUSAL_TA : NON_TRANSIT_REFUSAL_EN;
   }
 
-  // Location freshness
+  // Enrich context with real authorized backend telemetry (/api/live/buses)
+  let backendGpsHealth = 'active';
+  let backendHealthLabel = '';
+  try {
+    const liveRes = await fetch('/api/live/buses');
+    if (liveRes.ok) {
+      const liveData = await liveRes.json();
+      const matched = (liveData.buses || []).find(
+        (b: any) => b.busNumber === context.busId || b.busId === context.busId
+      );
+      if (matched) {
+        context.latitude = matched.lat ?? context.latitude;
+        context.longitude = matched.lng ?? context.longitude;
+        context.currentSpeed = matched.speedKmh ?? context.currentSpeed;
+        context.status = matched.statusLabel || context.status;
+        context.freshnessSeconds = matched.secondsSinceUpdate ?? context.freshnessSeconds;
+        backendGpsHealth = matched.gpsHealth || 'active';
+        backendHealthLabel = matched.gpsHealthLabel || '';
+        if (matched.nextStation?.name) {
+          context.nextStopName = matched.nextStation.name;
+        }
+      }
+    }
+  } catch {
+    // Backend unreachable — mark telemetry as offline/cached
+    backendGpsHealth = 'offline';
+    backendHealthLabel = 'Central server unreachable (showing last cached position)';
+  }
+
+  // Location freshness (never invent live status when GPS is stale or offline)
   let freshnessLabel = 'LIVE';
-  if (context.freshnessSeconds <= 30) {
-    freshnessLabel = 'LIVE';
-  } else if (context.freshnessSeconds <= 120) {
-    freshnessLabel = 'RECENT';
-  } else if (context.freshnessSeconds <= 300) {
-    freshnessLabel = 'SLIGHTLY DELAYED';
-  } else {
-    freshnessLabel = 'STALE';
+  if (backendGpsHealth === 'offline' || context.freshnessSeconds > 120) {
+    freshnessLabel = `OFFLINE / STALE (${backendHealthLabel || `Last update ${context.freshnessSeconds}s ago — Raspberry Pi queuing locally until 4G reconnects`})`;
+  } else if (backendGpsHealth === 'weak' || context.freshnessSeconds > 30) {
+    freshnessLabel = `DELAYED (${backendHealthLabel || `Updated ${context.freshnessSeconds}s ago`})`;
   }
 
   const dceSystemPrompt = `You are the official Dhanalakshmi College of Engineering (DCE) Campus Bus Tracking AI Assistant.
@@ -163,6 +188,7 @@ LIVE DATA EXTRACTED FROM ACTIVE WEB APPLICATION:
 - Current GPS Coordinates: ${context.latitude.toFixed(4)}, ${context.longitude.toFixed(4)}
 - Movement Status: ${context.status}
 - Telemetry Freshness: ${freshnessLabel} (Updated: ${context.lastUpdatedTimestamp})
+
 - Current Location: Near ${context.nextStopName}${context.distanceToNextStop ? ` (${context.distanceToNextStop} to next stop)` : ''}
 - Distance to Student Stop (${context.studentStopName}): ${context.distanceToStop}
 - Distance to DCE College Campus: ${context.distanceToCollegeKm.toFixed(1)} km

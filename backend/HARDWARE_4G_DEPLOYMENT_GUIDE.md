@@ -109,3 +109,44 @@ Setting `connection.autoconnect-retries 0` instructs `NetworkManager` to retry i
    sudo systemctl daemon-reload
    sudo systemctl enable --now dce-bus-agent.service
    ```
+
+---
+
+## 6. Operating Modes: Local Prototype Mode vs. Bus Operation Mode
+
+### Mode 1: Local Prototype Mode (Campus Wi-Fi / LAN)
+- **Topology:** Central FastAPI server (`http://10.202.99.63:5000`), SQLite database (`backend/data/bus_tracker.db`), web browser clients (`http://10.202.99.63:5173`), Android devices, and Raspberry Pi 5 prototype operate on the same private Wi-Fi/LAN subnet.
+- **Configuration:** Set `DCE_SERVER_URL=http://10.202.99.63:5000` and `DCE_VERIFY_TLS=false` in `/etc/dce-bus-agent/agent.env`.
+
+### Mode 2: Bus Operation Mode (4G LTE Cellular Uplink)
+- **Topology:** Each bus operates outside the college Wi-Fi network with an onboard Raspberry Pi 5 (4 GB), NEO-6M GPS module, cabin speaker, RFID/QR reader, and 4G LTE modem connecting to the central server over HTTPS (`DCE_SERVER_URL=https://transit.dce.edu.in`, `DCE_VERIFY_TLS=true`).
+- **Offline Behavior & Truthful Stale Reporting:**
+  - The Raspberry Pi 5 does **not** require continuous internet access to read GPS coordinates, play cabin stop announcements, or scan student RFID/QR cards. All events are buffered in `/var/lib/dce-bus-agent/queue_<device>.db`.
+  - **Important Limitation:** While a bus is inside a 4G cellular dead-zone and disconnected from the central server, remote student and staff apps **cannot** receive live GPS updates from that bus. During an outage, the central server and website explicitly mark the bus as **`OFFLINE / STALE`** (`secondsSinceUpdate > 120s`) rather than inventing live movement or presenting an old cached coordinate as live. Once 4G connectivity returns, the Pi 5 flushes its queued GPS history and attendance records to the central server.
+
+---
+
+## 7. Pre-Power Wiring Verification Checklist
+
+Complete every check with a digital multimeter **before** plugging the USB-C power cable into the Raspberry Pi 5:
+
+- [ ] **1. Inline Fuse Installed:** Confirm a **5A automotive blade fuse** is installed within 15 cm of the bus battery $+12\text{V}/+24\text{V}$ tap. Never bypass the fuse.
+- [ ] **2. Buck Converter Unloaded Voltage Check:** Measure the output of the 9V–36V to 5V 5A Buck Converter before connecting the Pi. Confirm voltage is between **5.05V and 5.20V DC** and polarity is correct.
+- [ ] **3. NEO-6M (`MP510_GPS_V02_WWXL`) Logic & Crossover Check:**
+  - Confirm `VCC` is wired to Pi Pin 1 (`3.3V`) or Pin 2 (`5V`) and `GND` is wired to Pi Pin 6 (`GND`).
+  - Confirm **crossover**: GPS `TXD` -> Pi **Pin 10 (`GPIO 15 / RXD0`)** and GPS `RXD` -> Pi **Pin 8 (`GPIO 14 / TXD0`)**.
+  - Confirm GPS `TXD` idle voltage does **not** exceed **3.3V DC**.
+- [ ] **4. Audio Isolation Check:** Confirm the cabin speaker is connected to the 12V/24V audio amplifier output terminals, and the amplifier audio input is connected to the **USB Audio DAC** on the Pi 5 (never to Pi GPIO pins).
+- [ ] **5. Active GPS Antenna Placement:** Mount the ceramic patch antenna with a clear view of the sky (away from metal roof obstructions) and avoid sharp bends in the coaxial pigtail.
+
+---
+
+## 8. Troubleshooting Guide
+
+| Symptom | Root Cause | Resolution |
+| :--- | :--- | :--- |
+| **`/dev/ttyAMA0` Permission Denied** | Service user not in `dialout` group or serial getty active | Run `sudo usermod -aG dialout pi`, remove `console=serial0,115200` from `/boot/firmware/cmdline.txt`, and reboot. |
+| **NEO-6M Emits `$GPRMC,,V,...` (Void Fix)** | Cold start or indoor/covered bus parking blocking satellite lock | Move the active GPS antenna outdoors with clear sky visibility; allow 35–60 seconds for initial 3D ephemeris lock. |
+| **No Audio from Cabin Speaker** | USB Audio DAC muted or wrong ALSA card index | Run `aplay -l` to verify card/device numbers, update `DCE_AUDIO_DEVICE=plughw:1,0`, and run `alsamixer` to unmute PCM volume. |
+| **RFID Reader Scans Not Captured** | USB HID reader permissions or wrong input device | Verify with `lsusb` and `sudo usermod -aG input,plugdev pi`. Ensure card is 13.56 MHz Mifare compatible with the reader frequency. |
+| **4G Modem Disconnected / No IP** | SIM APN mismatch or carrier session drop | Check `mmcli -m 0` and `nmcli connection show "dce-4g-uplink"`. Verify `connection.autoconnect yes` is enabled. |

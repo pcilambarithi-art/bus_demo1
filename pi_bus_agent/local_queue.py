@@ -70,6 +70,27 @@ class LocalEventQueue:
                     created_at INTEGER NOT NULL
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS played_announcements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    device_id TEXT NOT NULL,
+                    bus_id TEXT NOT NULL,
+                    stop_id TEXT NOT NULL,
+                    stop_name TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    announcement_text TEXT NOT NULL,
+                    language TEXT DEFAULT 'en-IN',
+                    distance_meters REAL DEFAULT 0.0,
+                    timestamp INTEGER NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS agent_state (
+                    state_key TEXT PRIMARY KEY,
+                    state_value TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+            """)
             conn.commit()
 
     def enqueue_gps(
@@ -125,6 +146,48 @@ class LocalEventQueue:
             conn.commit()
         return event_id
 
+    def log_played_announcement(
+        self,
+        stop_id: str,
+        stop_name: str,
+        event_type: str,
+        text: str,
+        distance_meters: float = 0.0,
+        language: str = "en-IN",
+        timestamp_ms: Optional[int] = None
+    ):
+        ts = timestamp_ms or int(time.time() * 1000)
+        with self._get_conn() as conn:
+            conn.execute("""
+                INSERT INTO played_announcements
+                (device_id, bus_id, stop_id, stop_name, event_type, announcement_text, language, distance_meters, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (self.device_id, self.bus_id, stop_id, stop_name, event_type, text, language, distance_meters, ts))
+            conn.commit()
+
+    def get_played_announcements(self, limit: int = 50) -> List[Dict[str, Any]]:
+        with self._get_conn() as conn:
+            rows = conn.execute("""
+                SELECT * FROM played_announcements
+                ORDER BY timestamp DESC, id DESC
+                LIMIT ?
+            """, (limit,)).fetchall()
+            return [dict(r) for r in rows]
+
+    def set_state(self, key: str, value: str):
+        with self._get_conn() as conn:
+            conn.execute("""
+                INSERT INTO agent_state (state_key, state_value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(state_key) DO UPDATE SET state_value = excluded.state_value, updated_at = excluded.updated_at
+            """, (key, value, int(time.time() * 1000)))
+            conn.commit()
+
+    def get_state(self, key: str) -> Optional[str]:
+        with self._get_conn() as conn:
+            row = conn.execute("SELECT state_value FROM agent_state WHERE state_key = ?", (key,)).fetchone()
+            return row["state_value"] if row else None
+
     def get_pending_gps(self, limit: int = 50) -> List[Dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute("""
@@ -178,3 +241,4 @@ class LocalEventQueue:
                 "pendingGpsCount": gps_count,
                 "pendingAttendanceCount": att_count
             }
+

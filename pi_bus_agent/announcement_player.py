@@ -39,6 +39,8 @@ class CabinAnnouncementEngine:
         cooldown_sec: int = 180,
         audio_device: str = "plughw:1,0",
         audio_clips_dir: str = "",
+        language: str = "en-IN",
+        queue: Optional[Any] = None,
         dry_run_audio: bool = False
     ):
         self.stops = sorted(stops, key=lambda s: int(s.get("sequence", 1)))
@@ -48,11 +50,24 @@ class CabinAnnouncementEngine:
         self.cooldown_sec = cooldown_sec
         self.audio_device = audio_device
         self.audio_clips_dir = Path(audio_clips_dir) if audio_clips_dir else None
+        self.language = language
+        self.queue = queue
         self.dry_run_audio = dry_run_audio
 
         self.current_arrived_stop_id: Optional[str] = None
         self.last_announced_times: Dict[str, float] = {} # key: f"{stop_id}:{event_type}"
         self.history: List[Dict[str, Any]] = []
+
+        # Restore persisted announcement cooldowns & arrived stop after process restart
+        if self.queue is not None:
+            saved_stop = self.queue.get_state("current_arrived_stop_id")
+            if saved_stop:
+                self.current_arrived_stop_id = saved_stop
+            for row in self.queue.get_played_announcements(limit=50):
+                key = f"{row['stop_id']}:{row['event_type']}"
+                ts_sec = float(row["timestamp"]) / 1000.0
+                if key not in self.last_announced_times or ts_sec > self.last_announced_times[key]:
+                    self.last_announced_times[key] = ts_sec
 
     def _can_announce(self, stop_id: str, event_type: str, now_ts: float) -> bool:
         key = f"{stop_id}:{event_type}"
@@ -62,11 +77,23 @@ class CabinAnnouncementEngine:
         self.last_announced_times[key] = now_ts
         return True
 
-    def _speak(self, text: str, stop_id: str, event_type: str):
-        """
-        Plays pre-recorded WAV clip if available, otherwise synthesizes speech offline via espeak-ng.
-        """
+    def _record_and_speak(self, ev: Dict[str, Any]):
+        text = ev["text"]
+        stop_id = ev["stopId"]
+        event_type = ev["eventType"]
         logger.info(f"[CABIN SPEAKER - {event_type}] {text}")
+
+        if self.queue is not None:
+            self.queue.log_played_announcement(
+                stop_id=stop_id,
+                stop_name=ev["stopName"],
+                event_type=event_type,
+                text=text,
+                distance_meters=ev.get("distanceMeters", 0.0),
+                language=self.language,
+                timestamp_ms=ev["timestamp"]
+            )
+
         if self.dry_run_audio:
             return
 
@@ -86,9 +113,10 @@ class CabinAnnouncementEngine:
 
         # 2. Fallback to offline espeak-ng TTS on Raspberry Pi OS
         if shutil.which("espeak-ng"):
+            voice_code = "ta" if self.language.lower().startswith("ta") else "en-in"
             try:
                 subprocess.Popen(
-                    ["espeak-ng", "-v", "en-in", "-s", "145", text],
+                    ["espeak-ng", "-v", voice_code, "-s", "145", text],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
@@ -127,7 +155,6 @@ class CabinAnnouncementEngine:
                     if self._can_announce(active_stop["id"], "DEPARTED", ts):
                         next_phrase = f" Next stop is {next_stop['name']}." if next_stop else " Proceeding to destination."
                         msg = f"Departed from {active_stop['name']}.{next_phrase}"
-                        self._speak(msg, active_stop["id"], "DEPARTED")
                         ev = {
                             "eventType": "DEPARTED",
                             "stopId": active_stop["id"],
@@ -137,9 +164,12 @@ class CabinAnnouncementEngine:
                             "text": msg,
                             "timestamp": int(ts * 1000)
                         }
+                        self._record_and_speak(ev)
                         triggered.append(ev)
                         self.history.append(ev)
                     self.current_arrived_stop_id = None
+                    if self.queue is not None:
+                        self.queue.set_state("current_arrived_stop_id", "")
 
         # 2. Find closest stop
         closest_dist, closest_idx, closest_stop = min(distances, key=lambda x: x[0])
@@ -149,9 +179,10 @@ class CabinAnnouncementEngine:
         if closest_dist <= stop_arrival_radius:
             if self.current_arrived_stop_id != closest_stop["id"]:
                 self.current_arrived_stop_id = closest_stop["id"]
+                if self.queue is not None:
+                    self.queue.set_state("current_arrived_stop_id", closest_stop["id"])
                 if self._can_announce(closest_stop["id"], "ARRIVED", ts):
                     msg = f"Arrived at {closest_stop['name']}. Please board or alight safely."
-                    self._speak(msg, closest_stop["id"], "ARRIVED")
                     ev = {
                         "eventType": "ARRIVED",
                         "stopId": closest_stop["id"],
@@ -160,6 +191,7 @@ class CabinAnnouncementEngine:
                         "text": msg,
                         "timestamp": int(ts * 1000)
                     }
+                    self._record_and_speak(ev)
                     triggered.append(ev)
                     self.history.append(ev)
 
@@ -167,7 +199,6 @@ class CabinAnnouncementEngine:
         elif closest_dist <= self.approaching_radius_m and self.current_arrived_stop_id != closest_stop["id"]:
             if self._can_announce(closest_stop["id"], "APPROACHING", ts):
                 msg = f"Approaching {closest_stop['name']} in {int(round(closest_dist))} meters."
-                self._speak(msg, closest_stop["id"], "APPROACHING")
                 ev = {
                     "eventType": "APPROACHING",
                     "stopId": closest_stop["id"],
@@ -176,7 +207,9 @@ class CabinAnnouncementEngine:
                     "text": msg,
                     "timestamp": int(ts * 1000)
                 }
+                self._record_and_speak(ev)
                 triggered.append(ev)
                 self.history.append(ev)
 
         return triggered
+

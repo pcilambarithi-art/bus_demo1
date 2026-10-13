@@ -305,3 +305,50 @@ def test_multi_bus_4g_isolation_offline_queue_and_reconciliation():
         assert dev_list["success"] is True
         assert dev_list["count"] >= 4
 
+
+def test_restart_recovery_and_hardware_simulator():
+    """
+    Verifies:
+    1. Clean process restart recovery: played announcements and arrived stop state persist in SQLite
+       so restarting the daemon does not repeat the same stop announcement.
+    2. Hardware-independent simulator explicitly labels all generated fixes as simulated.
+    """
+    from pi_bus_agent.hardware_simulator import generate_simulated_route_fixes
+
+    stops = [
+        {"id": "stop-1", "name": "Tambaram West Stand", "lat": 12.9249, "lng": 80.1165, "sequence": 1, "geofenceRadius": 80},
+        {"id": "stop-2", "name": "Perungalathur Junction", "lat": 12.9052, "lng": 80.0951, "sequence": 2, "geofenceRadius": 80},
+    ]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_file = os.path.join(tmpdir, "restart_test.db")
+        cfg = AgentConfig(
+            device_id="pi-bus-07",
+            bus_id="bus-07",
+            route_id="route-07",
+            local_db_path=db_file,
+            announcement_cooldown_sec=180,
+            test_mode=True
+        )
+        t0 = 1792000000.0
+        agent_before = RaspberryPiBusAgent(config=cfg, route_stops=stops, http_client=client, dry_run_audio=True)
+        ev1 = agent_before.announcer.evaluate_position(12.9249, 80.1165, now_ts=t0)
+        assert len(ev1) == 1
+        assert ev1[0]["eventType"] == "ARRIVED"
+
+        # Simulate process restart using the exact same SQLite file
+        agent_after_restart = RaspberryPiBusAgent(config=cfg, route_stops=stops, http_client=client, dry_run_audio=True)
+        assert agent_after_restart.announcer.current_arrived_stop_id == "stop-1"
+        ev_after = agent_after_restart.announcer.evaluate_position(12.9249, 80.1165, now_ts=t0 + 15)
+        assert len(ev_after) == 0 # Must NOT repeat ARRIVED announcement after restart!
+
+        status = agent_after_restart.get_service_status()
+        assert status["mode"] == "SIMULATED_TEST_MODE"
+        assert len(status["recentPlayedAnnouncements"]) == 1
+
+    # Verify hardware-independent simulator tags fixes clearly
+    sim_fixes = generate_simulated_route_fixes([{"lat": 12.9249, "lng": 80.1165, "speed_kmh": 22.0}])
+    assert len(sim_fixes) == 1
+    assert sim_fixes[0]["isSimulated"] is True
+    assert "SIMULATED TEST MODE" in sim_fixes[0]["simulationBanner"]
+
+
