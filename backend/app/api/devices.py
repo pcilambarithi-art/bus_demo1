@@ -148,13 +148,12 @@ async def sync_offline_gps_batch(
     stops = db.query(Stop).filter(Stop.route_id == bus.route_id).order_by(Stop.sequence.asc()).all() if bus.route_id else []
 
     for pt in sorted_points:
-        pt_dt = datetime.utcfromtimestamp(pt.timestamp / 1000.0)
+        pt_dt = datetime.utcfromtimestamp(pt.timestamp / 1000.0).replace(microsecond=0)
 
         # Deduplicate: check if this exact device timestamp for this bus is already stored
-
         existing = db.query(GPSHistory).filter(
             GPSHistory.bus_id == bus.id,
-            GPSHistory.device_timestamp == pt_dt
+            GPSHistory.device_timestamp == pt_dt,
         ).first()
 
         if existing:

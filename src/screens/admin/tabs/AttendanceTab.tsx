@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  CreditCard,
   Cpu,
   Wifi,
   CheckCircle2,
@@ -12,11 +11,18 @@ import {
   ShieldAlert,
   BatteryCharging,
   Thermometer,
-  Navigation
+  Navigation,
+  ScanFace,
+  ShieldCheck,
+  Trash2,
+  Database,
+  Play,
+  Lock
 } from 'lucide-react';
 
 interface AttendanceRecordItem {
   id: string;
+  sessionId?: string | null;
   studentId: string;
   studentName: string;
   department: string;
@@ -25,7 +31,12 @@ interface AttendanceRecordItem {
   routeId: string;
   stopId?: string;
   stopName: string;
-  eventType: 'BOARDING' | 'EXIT';
+  eventType: 'BOARDING' | 'EXIT' | 'CLASSROOM_PRESENT';
+  verificationMethod?: 'FACE_BIOMETRIC' | 'RFID_CARD' | 'QR_CODE' | 'MANUAL_OVERRIDE';
+  confidenceScore?: number | null;
+  livenessPassed?: boolean;
+  livenessScore?: number | null;
+  verificationStatus?: string;
   deviceId: string;
   timestamp: number;
   timestampIso: string;
@@ -44,8 +55,43 @@ interface StudentItem {
   permittedBusIds: string[];
   permittedRouteIds: string[];
   designatedStopName: string;
+  faceEnrolled?: boolean;
   parentPhone: string;
   isActive: boolean;
+}
+
+interface FaceEnrollmentItem {
+  id: string;
+  studentId: string;
+  studentName: string;
+  department: string;
+  enrollmentStatus: string;
+  templateVersion: string;
+  templateHashPrefix: string;
+  sampleCount: number;
+  averageQualityScore: number;
+  brightnessScore: number;
+  sharpnessScore: number;
+  consentGranted: boolean;
+  consentTimestamp: string;
+  enrolledByName: string;
+}
+
+interface AttendanceSessionItem {
+  id: string;
+  sessionName: string;
+  sessionType: 'BUS_BOARDING' | 'CLASSROOM' | 'EXAM_HALL';
+  status: 'OPEN' | 'CLOSED';
+  busId?: string | null;
+  routeId?: string | null;
+  department?: string;
+  subjectOrStop?: string;
+  similarityThreshold: number;
+  requireLiveness: boolean;
+  startedAt: string;
+  endedAt?: string | null;
+  totalVerified: number;
+  totalRejected: number;
 }
 
 interface PiDeviceItem {
@@ -65,15 +111,80 @@ interface PiDeviceItem {
   isOnline: boolean;
 }
 
+/**
+ * Generates an in-browser PNG data URI on a 160x160 canvas for testing
+ * enrollment and live verification under normal, dark, blurry, or spoofed conditions.
+ */
+function generateSyntheticFaceDataUri(
+  studentId: string,
+  mode: 'NORMAL' | 'DARK' | 'BLURRY' | 'BLANK' = 'NORMAL'
+): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 160;
+  canvas.height = 160;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  if (mode === 'DARK') {
+    ctx.fillStyle = 'rgb(12, 12, 14)';
+    ctx.fillRect(0, 0, 160, 160);
+    return canvas.toDataURL('image/png');
+  }
+  if (mode === 'BLANK') {
+    ctx.fillStyle = 'rgb(128, 128, 128)';
+    ctx.fillRect(0, 0, 160, 160);
+    return canvas.toDataURL('image/png');
+  }
+
+  // Deterministic seed from studentId
+  let hash = 2166136261;
+  for (let i = 0; i < studentId.length; i++) {
+    hash ^= studentId.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 16; x++) {
+      hash ^= (x + 1) * (y + 1);
+      hash = Math.imul(hash, 16777619);
+      const v = 70 + (Math.abs(hash) % 120);
+      ctx.fillStyle = `rgb(${Math.min(255, v + 14)}, ${v}, ${Math.max(0, v - 12)})`;
+      ctx.fillRect(x * 10, y * 20, 10, 20);
+    }
+  }
+
+  if (mode !== 'BLURRY') {
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    for (let y = 0; y < 160; y += 4) {
+      for (let x = (y % 8 === 0 ? 0 : 4); x < 160; x += 8) {
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+  } else {
+    ctx.fillStyle = 'rgb(130, 130, 130)';
+    ctx.fillRect(0, 0, 160, 160);
+    ctx.fillStyle = 'rgb(136, 136, 136)';
+    ctx.fillRect(40, 40, 80, 80);
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
 export const AttendanceTab: React.FC = () => {
   const [logs, setLogs] = useState<AttendanceRecordItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [enrollments, setEnrollments] = useState<FaceEnrollmentItem[]>([]);
+  const [sessions, setSessions] = useState<AttendanceSessionItem[]>([]);
   const [devices, setDevices] = useState<PiDeviceItem[]>([]);
+  const [logicalDbs, setLogicalDbs] = useState<Record<string, { connected: boolean; engine?: string }>>({});
   const [summary, setSummary] = useState({
     totalRegisteredStudents: 0,
+    faceEnrolledStudents: 0,
+    activeAttendanceSessions: 0,
     totalEvents: 0,
     totalBoardings: 0,
     totalExits: 0,
+    faceBiometricVerified: 0,
     unauthorizedBoardings: 0,
     offlineSyncedEvents: 0,
   });
@@ -81,14 +192,31 @@ export const AttendanceTab: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'warn' | 'error'; text: string } | null>(null);
 
+  // Face Enrollment state
+  const [enrollStudentId, setEnrollStudentId] = useState<string>('DCE-2025-ME009');
+  const [enrollConsent, setEnrollConsent] = useState<boolean>(true);
+
+  // New Attendance Session state
+  const [showNewSession, setShowNewSession] = useState<boolean>(false);
+  const [sessionName, setSessionName] = useState<string>('Morning Boarding - DCE-BUS-07');
+  const [sessionType, setSessionType] = useState<'BUS_BOARDING' | 'CLASSROOM'>('BUS_BOARDING');
+  const [sessionBusId, setSessionBusId] = useState<string>('bus-07');
+  const [sessionThreshold, setSessionThreshold] = useState<number>(0.82);
+
+  // Live Face Verification Simulator state
+  const [verifySessionId, setVerifySessionId] = useState<string>('sess-morning-bus07');
+  const [verifyStudentId, setVerifyStudentId] = useState<string>('DCE-2024-CS042');
+  const [verifyScenario, setVerifyScenario] = useState<'NORMAL' | 'DARK' | 'BLURRY' | 'LIVENESS_FAIL'>('NORMAL');
+
   // Test RFID Tap state
   const [simIdentifier, setSimIdentifier] = useState<string>('RFID-07A1B2C3');
   const [simBusId, setSimBusId] = useState<string>('bus-07');
   const [simEventType, setSimEventType] = useState<'BOARDING' | 'EXIT'>('BOARDING');
   const [simStopName, setSimStopName] = useState<string>('Tambaram West Stand');
 
-  // Correction modal state
+  // Review / Correction modal state
   const [editingRecord, setEditingRecord] = useState<AttendanceRecordItem | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<string>('MANUAL_APPROVED');
   const [correctionRemarks, setCorrectionRemarks] = useState<string>('');
   const [correctionAuthorized, setCorrectionAuthorized] = useState<boolean>(true);
 
@@ -104,17 +232,29 @@ export const AttendanceTab: React.FC = () => {
   const fetchAllAttendanceData = useCallback(async () => {
     setLoading(true);
     try {
-      const [logsRes, repRes, stuRes, devRes] = await Promise.all([
-        fetch('/api/attendance/logs?limit=100').then((r) => r.json()),
+      const [logsRes, repRes, stuRes, devRes, enrRes, sessRes, healthRes] = await Promise.all([
+        fetch('/api/attendance/records?limit=100').then((r) => r.json()),
         fetch('/api/attendance/report').then((r) => r.json()),
         fetch('/api/students').then((r) => r.json()),
         fetch('/api/devices').then((r) => r.json()),
+        fetch('/api/attendance/enrollments').then((r) => r.json()),
+        fetch('/api/attendance/sessions').then((r) => r.json()),
+        fetch('/api/health').then((r) => r.json()),
       ]);
 
-      if (logsRes?.logs) setLogs(logsRes.logs);
-      if (repRes?.summary) setSummary(repRes.summary);
+      if (logsRes?.records) setLogs(logsRes.records);
+      if (repRes?.summary) setSummary((prev) => ({ ...prev, ...repRes.summary }));
       if (stuRes?.students) setStudents(stuRes.students);
       if (devRes?.devices) setDevices(devRes.devices);
+      if (enrRes?.enrollments) setEnrollments(enrRes.enrollments);
+      if (sessRes?.sessions) {
+        setSessions(sessRes.sessions);
+        const firstOpen = sessRes.sessions.find((s: AttendanceSessionItem) => s.status === 'OPEN');
+        if (firstOpen) setVerifySessionId(firstOpen.id);
+      }
+      if (healthRes?.database?.logicalDatabases) {
+        setLogicalDbs(healthRes.database.logicalDatabases);
+      }
     } catch (err) {
       console.warn('Failed fetching attendance/device telemetry:', err);
     } finally {
@@ -125,6 +265,132 @@ export const AttendanceTab: React.FC = () => {
   useEffect(() => {
     fetchAllAttendanceData();
   }, [fetchAllAttendanceData]);
+
+  const handleEnrollFace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusBanner(null);
+    const imgDataUri = generateSyntheticFaceDataUri(enrollStudentId, 'NORMAL');
+    try {
+      const res = await fetch('/api/attendance/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: enrollStudentId,
+          consentGranted: enrollConsent,
+          imageBase64: imgDataUri,
+          livenessScore: 0.94,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = typeof data.detail === 'string' ? data.detail : data.detail?.message || 'Enrollment failed';
+        setStatusBanner({ type: 'error', text: msg });
+        return;
+      }
+      setStatusBanner({
+        type: 'success',
+        text: `${data.message} (Quality: ${(data.enrollment.averageQualityScore * 100).toFixed(0)}%, Hash: ${data.enrollment.templateHashPrefix}...)`,
+      });
+      fetchAllAttendanceData();
+    } catch (err: any) {
+      setStatusBanner({ type: 'error', text: err?.message || 'Enrollment request failed' });
+    }
+  };
+
+  const handleDeleteEnrollment = async (studentId: string) => {
+    setStatusBanner(null);
+    try {
+      const res = await fetch(`/api/attendance/enrollments/${studentId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusBanner({ type: 'warn', text: data.message });
+        fetchAllAttendanceData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusBanner(null);
+    try {
+      const res = await fetch('/api/attendance/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionName,
+          sessionType,
+          busId: sessionType === 'BUS_BOARDING' ? sessionBusId : null,
+          routeId: sessionType === 'BUS_BOARDING' ? sessionBusId.replace('bus-', 'route-') : null,
+          similarityThreshold: sessionThreshold,
+          requireLiveness: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusBanner({
+          type: 'success',
+          text: `Created ${data.session.sessionType} session "${data.session.sessionName}" (${data.session.id})`,
+        });
+        setShowNewSession(false);
+        fetchAllAttendanceData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleVerifyFace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusBanner(null);
+    const imgMode = verifyScenario === 'DARK' ? 'DARK' : verifyScenario === 'BLURRY' ? 'BLURRY' : 'NORMAL';
+    const imgDataUri = generateSyntheticFaceDataUri(verifyStudentId, imgMode);
+    const livenessVal = verifyScenario === 'LIVENESS_FAIL' ? 0.35 : 0.93;
+
+    try {
+      const res = await fetch('/api/attendance/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: verifySessionId,
+          studentId: verifyStudentId,
+          imageBase64: imgDataUri,
+          livenessScore: livenessVal,
+          busId: 'bus-07',
+          eventType: 'BOARDING',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const reason =
+          typeof data.detail === 'string'
+            ? data.detail
+            : `[${data.detail?.outcome || 'REJECTED'}] ${data.detail?.message || 'Verification failed'}`;
+        setStatusBanner({ type: 'error', text: reason });
+        fetchAllAttendanceData();
+        return;
+      }
+      if (data.duplicate) {
+        setStatusBanner({
+          type: 'warn',
+          text: `[DUPLICATE_IN_SESSION] ${data.message} (Similarity: ${(data.similarityScore * 100).toFixed(1)}%)`,
+        });
+      } else {
+        setStatusBanner({
+          type: 'success',
+          text: `[MATCH_VERIFIED] ${data.attendance.studentName} (${data.attendance.studentId}) verified via Face Biometric (${(
+            data.similarityScore * 100
+          ).toFixed(1)}% similarity)`,
+        });
+      }
+      fetchAllAttendanceData();
+    } catch (err: any) {
+      setStatusBanner({ type: 'error', text: err?.message || 'Face verification error' });
+    }
+  };
 
   const handleTestRfidTap = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,9 +420,7 @@ export const AttendanceTab: React.FC = () => {
       } else {
         setStatusBanner({
           type: data.attendance.isAuthorized ? 'success' : 'warn',
-          text: `${data.attendance.eventType} recorded for ${data.attendance.studentName} (${data.attendance.studentId}) on ${data.attendance.busNumber} — ${
-            data.attendance.isAuthorized ? 'Authorized Route' : 'WARNING: Unauthorized Bus!'
-          }`,
+          text: `${data.attendance.eventType} recorded for ${data.attendance.studentName} (${data.attendance.studentId}) on ${data.attendance.busNumber}`,
         });
       }
       fetchAllAttendanceData();
@@ -165,14 +429,15 @@ export const AttendanceTab: React.FC = () => {
     }
   };
 
-  const handleSaveCorrection = async (e: React.FormEvent) => {
+  const handleSaveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecord || !correctionRemarks.trim()) return;
     try {
-      const res = await fetch(`/api/attendance/${editingRecord.id}/correct`, {
-        method: 'PUT',
+      const res = await fetch(`/api/attendance/records/${editingRecord.id}/review`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          decision: reviewDecision,
           isAuthorized: correctionAuthorized,
           remarks: correctionRemarks.trim(),
         }),
@@ -181,7 +446,7 @@ export const AttendanceTab: React.FC = () => {
       if (res.ok && data.success) {
         setStatusBanner({
           type: 'success',
-          text: `Corrected attendance record for ${editingRecord.studentName} and wrote immutable audit log.`,
+          text: `Reviewed attendance record for ${editingRecord.studentName} (${reviewDecision}) and logged to dce_audit_db.`,
         });
         setEditingRecord(null);
         setCorrectionRemarks('');
@@ -213,7 +478,7 @@ export const AttendanceTab: React.FC = () => {
       if (res.ok && data.success) {
         setStatusBanner({
           type: 'success',
-          text: `Registered student ${data.student.name} (${data.student.id}) with RFID ${data.student.rfidUid}`,
+          text: `Registered student ${data.student.name} (${data.student.id}) in dce_student_db`,
         });
         setShowNewStudent(false);
         setNewStudentId('');
@@ -236,21 +501,28 @@ export const AttendanceTab: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-white flex items-center gap-2.5">
-            <CreditCard className="w-6 h-6 text-cyan-400" />
-            RFID / QR Student Attendance &amp; Raspberry Pi 5 4G Agents
+            <ScanFace className="w-6 h-6 text-cyan-400" />
+            Biometric Face Attendance, RFID/QR &amp; 6-MySQL Database Architecture
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Live boarding/exit verification, offline 4G store-and-forward reconciliation, and Pi 5 hardware health.
+            Encrypted 128-D face templates at rest, liveness verification, Raspberry Pi 5 4G sync, and isolated MySQL 8.x databases.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowNewSession(!showNewSession)}
+            className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5" />
+            New Attendance Session
+          </button>
           <button
             onClick={() => setShowNewStudent(!showNewStudent)}
             className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            Register Student Pass
+            Register Student
           </button>
           <button
             onClick={fetchAllAttendanceData}
@@ -262,6 +534,30 @@ export const AttendanceTab: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Six Logical MySQL Databases Health Strip */}
+      {Object.keys(logicalDbs).length > 0 && (
+        <div className="p-3.5 rounded-2xl bg-[#0B132B]/90 border border-cyan-500/25 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-cyan-300">
+            <Database className="w-4 h-4 text-cyan-400" />
+            <span>Six-Database Modular Isolation (MySQL 8.x):</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {Object.entries(logicalDbs).map(([dbName, info]) => (
+              <span
+                key={dbName}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border ${
+                  info.connected
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                }`}
+              >
+                {dbName} • {info.engine || 'ONLINE'}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {statusBanner && (
         <div
@@ -281,31 +577,290 @@ export const AttendanceTab: React.FC = () => {
       )}
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Registered Passes</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Students (dce_student_db)</span>
           <div className="text-2xl font-black text-white mt-1">{summary.totalRegisteredStudents}</div>
-          <span className="text-[11px] text-cyan-400 font-semibold">13.56MHz RFID &amp; QR Enabled</span>
+          <span className="text-[11px] text-cyan-400 font-semibold">Face + RFID/QR Passes</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Boardings / Exits</span>
-          <div className="text-2xl font-black text-emerald-400 mt-1">
-            {summary.totalBoardings} <span className="text-sm text-slate-400 font-normal">/ {summary.totalExits} Exits</span>
-          </div>
-          <span className="text-[11px] text-slate-400">5-min Anti-Passback Active</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Encrypted Face Templates</span>
+          <div className="text-2xl font-black text-emerald-400 mt-1">{enrollments.length}</div>
+          <span className="text-[11px] text-emerald-300/80 flex items-center gap-1">
+            <Lock className="w-3 h-3" /> AES/HMAC-256 at Rest
+          </span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Face Verified Events</span>
+          <div className="text-2xl font-black text-cyan-300 mt-1">{summary.faceBiometricVerified || 0}</div>
+          <span className="text-[11px] text-slate-400">Threshold ≥ 0.82 + Liveness</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">4G Offline Synced</span>
           <div className="text-2xl font-black text-sky-400 mt-1">{summary.offlineSyncedEvents}</div>
-          <span className="text-[11px] text-slate-400">Store-and-Forward SQLite Queue</span>
+          <span className="text-[11px] text-slate-400">Store-and-Forward Queue</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Route Exceptions</span>
           <div className="text-2xl font-black text-amber-400 mt-1">{summary.unauthorizedBoardings}</div>
-          <span className="text-[11px] text-amber-300/80">Boarded Non-Designated Bus</span>
+          <span className="text-[11px] text-amber-300/80">Flagged for Review</span>
+        </div>
+      </div>
+
+      {/* Create Attendance Session Modal/Panel */}
+      {showNewSession && (
+        <form
+          onSubmit={handleCreateSession}
+          className="p-5 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-emerald-300">
+              Open New Attendance Verification Session (dce_attendance_db)
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowNewSession(false)}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <input
+              type="text"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              placeholder="Session Name"
+              required
+              className="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-xs text-white"
+            />
+            <select
+              value={sessionType}
+              onChange={(e) => setSessionType(e.target.value as 'BUS_BOARDING' | 'CLASSROOM')}
+              className="px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+            >
+              <option value="BUS_BOARDING">BUS_BOARDING</option>
+              <option value="CLASSROOM">CLASSROOM</option>
+            </select>
+            <select
+              value={sessionBusId}
+              onChange={(e) => setSessionBusId(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+            >
+              <option value="bus-07">DCE-BUS-07 (Tambaram)</option>
+              <option value="bus-04">DCE-BUS-04 (Chromepet)</option>
+              <option value="bus-12">DCE-BUS-12 (Guindy)</option>
+              <option value="bus-18">DCE-BUS-18 (Velachery)</option>
+            </select>
+            <input
+              type="number"
+              step="0.01"
+              min="0.60"
+              max="0.98"
+              value={sessionThreshold}
+              onChange={(e) => setSessionThreshold(parseFloat(e.target.value) || 0.82)}
+              className="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-xs text-white"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs cursor-pointer"
+          >
+            Create Active Session
+          </button>
+        </form>
+      )}
+
+      {/* Face Biometric Enrollment & Live Verification Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left: Biometric Face Enrollment with Informed Consent */}
+        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              1. Biometric Face Enrollment (Encrypted 128-D Template)
+            </h3>
+            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded">
+              Consent Mandatory
+            </span>
+          </div>
+
+          <form onSubmit={handleEnrollFace} className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                Select Student to Enroll (dce_student_db)
+              </label>
+              <select
+                value={enrollStudentId}
+                onChange={(e) => setEnrollStudentId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+              >
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.id}) — {s.department} {s.faceEnrolled ? '[ENROLLED]' : '[NOT ENROLLED]'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enrollConsent}
+                onChange={(e) => setEnrollConsent(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Student has granted explicit informed consent to extract &amp; store an encrypted 128-D facial feature
+                template in <code className="text-cyan-300">dce_attendance_db</code> (raw photos never stored).
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+            >
+              <ScanFace className="w-4 h-4" />
+              Capture &amp; Encrypt Face Template
+            </button>
+          </form>
+
+          {/* Enrolled Templates List */}
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <div className="text-[10px] font-bold uppercase text-slate-400">
+              Active Encrypted Biometric Templates ({enrollments.length})
+            </div>
+            <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+              {enrollments.map((enr) => (
+                <div
+                  key={enr.id}
+                  className="p-2.5 rounded-xl bg-[#0B132B]/90 border border-white/10 flex items-center justify-between text-xs"
+                >
+                  <div>
+                    <div className="font-bold text-white">
+                      {enr.studentName} <span className="text-cyan-300 font-mono text-[10px]">({enr.studentId})</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      Quality: {(enr.averageQualityScore * 100).toFixed(0)}% • Luma: {enr.brightnessScore} • Hash:{' '}
+                      {enr.templateHashPrefix}...
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEnrollment(enr.studentId)}
+                    title="Delete Biometric Template (Right to Erasure)"
+                    className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" /> Revoke
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Live Face Verification & Liveness Test Console */}
+        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <ScanFace className="w-4 h-4 text-cyan-400" />
+              2. Live Face Verification &amp; Liveness Gate (/api/attendance/verify)
+            </h3>
+            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded">
+              128-D Cosine Match
+            </span>
+          </div>
+
+          <form onSubmit={handleVerifyFace} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Active Session</label>
+                <select
+                  value={verifySessionId}
+                  onChange={(e) => setVerifySessionId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      [{s.status}] {s.sessionName} ({s.sessionType})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Student Probe</label>
+                <select
+                  value={verifyStudentId}
+                  onChange={(e) => setVerifyStudentId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+                >
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.id}) {s.faceEnrolled ? '✓ Enrolled' : '✗ Unenrolled'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                Camera Quality &amp; Liveness Scenario
+              </label>
+              <select
+                value={verifyScenario}
+                onChange={(e) => setVerifyScenario(e.target.value as any)}
+                className="w-full px-3 py-2 rounded-xl bg-[#0B132B] border border-white/15 text-xs text-white"
+              >
+                <option value="NORMAL">Well-Lit Sharp Frame + Live Blink/Micro-Texture (Passes Verification)</option>
+                <option value="DARK">Poor Lighting Frame (Triggers POOR_LIGHTING Rejection)</option>
+                <option value="BLURRY">Motion-Blurred Frame (Triggers BLURRY_IMAGE Rejection)</option>
+                <option value="LIVENESS_FAIL">Printed Photo / Static Replay Spoof (Triggers LIVENESS_FAILED)</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+            >
+              <ScanFace className="w-4 h-4" />
+              Verify Student Face in Session
+            </button>
+          </form>
+
+          {/* Active Sessions Summary */}
+          <div className="space-y-1.5 pt-2 border-t border-white/10">
+            <div className="text-[10px] font-bold uppercase text-slate-400">
+              Attendance Sessions ({sessions.length})
+            </div>
+            {sessions.slice(0, 3).map((sess) => (
+              <div
+                key={sess.id}
+                className="p-2 rounded-xl bg-[#0B132B]/90 border border-white/10 flex items-center justify-between text-xs"
+              >
+                <div>
+                  <span className="font-bold text-white">{sess.sessionName}</span>
+                  <span className="ml-2 text-[10px] font-mono text-slate-400">
+                    Verified: {sess.totalVerified} • Rejected: {sess.totalRejected}
+                  </span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${
+                    sess.status === 'OPEN'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-slate-500/20 text-slate-300'
+                  }`}
+                >
+                  {sess.status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -380,7 +935,7 @@ export const AttendanceTab: React.FC = () => {
           className="p-5 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 space-y-4"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-cyan-300">Register New Student RFID / QR Transport Pass</h3>
+            <h3 className="text-sm font-extrabold text-cyan-300">Register New Student in dce_student_db</h3>
             <button
               type="button"
               onClick={() => setShowNewStudent(false)}
@@ -442,19 +997,19 @@ export const AttendanceTab: React.FC = () => {
             type="submit"
             className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs cursor-pointer"
           >
-            Save Student Pass
+            Save Student Profile
           </button>
         </form>
       )}
 
-      {/* Test Mode RFID Card Tap Simulator */}
+      {/* Fallback RFID Card Tap Simulator */}
       <form
         onSubmit={handleTestRfidTap}
         className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-cyan-500/30 flex flex-wrap items-end gap-3"
       >
         <div className="flex-1 min-w-[200px]">
           <label className="block text-[10px] font-bold uppercase text-cyan-400 mb-1">
-            [TEST MODE] Simulate Student RFID / QR Scan
+            [HARDWARE FALLBACK] Simulate Student RFID / QR Scan
           </label>
           <select
             value={simIdentifier}
@@ -517,7 +1072,9 @@ export const AttendanceTab: React.FC = () => {
       {/* Attendance Logs Table */}
       <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
         <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-extrabold text-white">Student Boarding &amp; Exit Verification Log</h3>
+          <h3 className="text-sm font-extrabold text-white">
+            Unified Face Biometric &amp; RFID/QR Attendance Records (dce_attendance_db)
+          </h3>
           <div className="flex items-center gap-2">
             {['ALL', 'bus-07', 'bus-04', 'bus-12', 'bus-18'].map((b) => (
               <button
@@ -540,12 +1097,12 @@ export const AttendanceTab: React.FC = () => {
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-wider text-slate-400 bg-white/[0.02]">
                 <th className="py-3 px-4">Student</th>
-                <th className="py-3 px-4">Bus &amp; Device</th>
-                <th className="py-3 px-4">Event / Stop</th>
-                <th className="py-3 px-4">Sync Mode</th>
+                <th className="py-3 px-4">Method &amp; Confidence</th>
+                <th className="py-3 px-4">Bus &amp; Stop</th>
+                <th className="py-3 px-4">Status / Sync</th>
                 <th className="py-3 px-4">Authorization</th>
                 <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4 text-right">Action</th>
+                <th className="py-3 px-4 text-right">Review</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-xs">
@@ -558,32 +1115,41 @@ export const AttendanceTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="font-bold text-cyan-300">{item.busNumber}</div>
-                    <div className="text-[10px] text-slate-400 font-mono">{item.deviceId}</div>
-                  </td>
-                  <td className="py-3 px-4">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold mr-1.5 ${
-                        item.eventType === 'BOARDING'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-purple-500/20 text-purple-300'
+                      className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold ${
+                        item.verificationMethod === 'FACE_BIOMETRIC'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-cyan-500/20 text-cyan-300'
                       }`}
                     >
-                      {item.eventType}
+                      {item.verificationMethod || 'RFID_CARD'}
                     </span>
-                    <span className="text-slate-300">{item.stopName}</span>
+                    {item.confidenceScore != null && (
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        Sim: {(item.confidenceScore * 100).toFixed(1)}% • Live:{' '}
+                        {item.livenessPassed ? 'PASS' : 'FAIL'}
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="font-bold text-cyan-300">{item.busNumber}</div>
+                    <div className="text-[10px] text-slate-300">
+                      [{item.eventType}] {item.stopName}
+                    </div>
                   </td>
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
-                        item.syncStatus === 'OFFLINE_SYNCED'
+                        item.verificationStatus === 'MANUAL_REJECTED'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : item.syncStatus === 'OFFLINE_SYNCED'
                           ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                           : item.syncStatus === 'MANUAL_CORRECTED'
                           ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                           : 'bg-white/10 text-slate-300'
                       }`}
                     >
-                      {item.syncStatus}
+                      {item.verificationStatus || item.syncStatus}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -593,7 +1159,7 @@ export const AttendanceTab: React.FC = () => {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-amber-400 text-[11px] font-bold">
-                        <ShieldAlert className="w-3.5 h-3.5" /> Wrong Bus
+                        <ShieldAlert className="w-3.5 h-3.5" /> Exception
                       </span>
                     )}
                     {item.remarks && (
@@ -607,12 +1173,13 @@ export const AttendanceTab: React.FC = () => {
                     <button
                       onClick={() => {
                         setEditingRecord(item);
+                        setReviewDecision('MANUAL_APPROVED');
                         setCorrectionAuthorized(item.isAuthorized);
                         setCorrectionRemarks(item.remarks || '');
                       }}
                       className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <Edit3 className="w-3 h-3" /> Correct
+                      <Edit3 className="w-3 h-3" /> Review
                     </button>
                   </td>
                 </tr>
@@ -622,21 +1189,33 @@ export const AttendanceTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Admin Correction Modal */}
+      {/* Admin Review Modal (/api/attendance/records/{id}/review) */}
       {editingRecord && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <form
-            onSubmit={handleSaveCorrection}
+            onSubmit={handleSaveReview}
             className="w-full max-w-md rounded-2xl bg-[#0B132B] border border-white/15 p-5 space-y-4"
           >
             <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
-              Administrative Attendance Correction (Audited)
+              Attendance Manual Review &amp; Audit (dce_audit_db)
             </h3>
             <p className="text-xs text-slate-400">
-              Modifying record <span className="font-mono text-white">{editingRecord.id}</span> for{' '}
+              Reviewing record <span className="font-mono text-white">{editingRecord.id}</span> for{' '}
               <strong className="text-white">{editingRecord.studentName}</strong>.
             </p>
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Review Decision</label>
+              <select
+                value={reviewDecision}
+                onChange={(e) => setReviewDecision(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-xs text-white"
+              >
+                <option value="MANUAL_APPROVED">MANUAL_APPROVED (Approve Attendance)</option>
+                <option value="MANUAL_REJECTED">MANUAL_REJECTED (Reject / Revoke Attendance)</option>
+                <option value="FLAGGED_FOR_REVIEW">FLAGGED_FOR_REVIEW (Escalate)</option>
+              </select>
+            </div>
             <label className="flex items-center gap-2 text-xs text-white">
               <input
                 type="checkbox"
@@ -654,7 +1233,7 @@ export const AttendanceTab: React.FC = () => {
                 required
                 value={correctionRemarks}
                 onChange={(e) => setCorrectionRemarks(e.target.value)}
-                placeholder="Reason for administrative override..."
+                placeholder="Reason for administrative review..."
                 className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-xs text-white"
               />
             </div>
@@ -670,7 +1249,7 @@ export const AttendanceTab: React.FC = () => {
                 type="submit"
                 className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-xs font-extrabold cursor-pointer"
               >
-                Save &amp; Log Audit
+                Save Review &amp; Audit
               </button>
             </div>
           </form>

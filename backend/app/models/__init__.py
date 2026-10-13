@@ -1,16 +1,20 @@
-from .user import User
-from .bus import Bus
+from .user import User, RevokedToken, AuthLoginEvent
+from .bus import Bus, Trip
 from .route import Route
 from .stop import Stop
 from .gps import GPSHistory, BusLatestLocation, ArrivalDepartureEvent
-from .notification import VoiceAnnouncement, IssueReport, NotificationRecord
+from .notification import VoiceAnnouncement, IssueReport, NotificationRecord, NotificationPreference
 from .audit import AuditLog
 from .attendance import Student, AttendanceRecord
+from .face_attendance import FaceEnrollment, AttendanceSession, FaceVerificationLog
 from .device import Device
 
 __all__ = [
     "User",
+    "RevokedToken",
+    "AuthLoginEvent",
     "Bus",
+    "Trip",
     "Route",
     "Stop",
     "GPSHistory",
@@ -19,9 +23,12 @@ __all__ = [
     "VoiceAnnouncement",
     "IssueReport",
     "NotificationRecord",
+    "NotificationPreference",
     "AuditLog",
     "Student",
     "AttendanceRecord",
-    "Device"
+    "FaceEnrollment",
+    "AttendanceSession",
+    "FaceVerificationLog",
+    "Device",
 ]
-

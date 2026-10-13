@@ -5,7 +5,8 @@ def test_health_endpoint(client):
     data = res.json()
     assert data["status"] == "healthy"
     assert data["database"]["connected"] is True
-    assert data["database"]["type"] == "SQLite"
+    assert data["database"]["type"] in ("MySQL 8.x", "SQLite")
+    assert len(data["database"].get("logicalDatabases", {})) == 6
     assert data["database"]["activeBuses"] >= 5
 
 def test_sync_endpoint(client):

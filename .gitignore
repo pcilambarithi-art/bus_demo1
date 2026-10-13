@@ -46,5 +46,7 @@ __pycache__/
 *.sqlite3
 backend/data/*.db
 backend/data/logs/*
+backend/data/backups/*
+*.sql.bak
 backup_*/
 

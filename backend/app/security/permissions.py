@@ -1,9 +1,17 @@
+from datetime import datetime
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.user import User
-from .authentication import decode_access_token
+from ..models.user import User, RevokedToken
+from ..models.device import Device
+from .authentication import decode_access_token, verify_password, hash_token
+
+
+def _is_token_revoked(db: Session, token: str) -> bool:
+    t_hash = hash_token(token)
+    return db.query(RevokedToken).filter(RevokedToken.token_hash == t_hash).first() is not None
+
 
 def get_optional_user(
     authorization: Optional[str] = Header(None),
@@ -15,10 +23,13 @@ def get_optional_user(
     payload = decode_access_token(token)
     if not payload:
         return None
+    if _is_token_revoked(db, token):
+        return None
     user_id = payload.get("sub") or payload.get("id")
     if not user_id:
         return None
     return db.query(User).filter(User.id == user_id, User.is_active == True).first()
+
 
 def get_current_user(
     authorization: Optional[str] = Header(None),
@@ -36,6 +47,11 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session token"
         )
+    if _is_token_revoked(db, token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session token has been revoked"
+        )
     user_id = payload.get("sub") or payload.get("id")
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
     if not user:
@@ -44,6 +60,7 @@ def get_current_user(
             detail="User account not found or disabled"
         )
     return user
+
 
 def require_roles(allowed_roles: List[str]):
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
@@ -55,12 +72,11 @@ def require_roles(allowed_roles: List[str]):
         return current_user
     return role_checker
 
-from datetime import datetime
-from ..models.device import Device
-from .authentication import verify_password
 
 require_admin = require_roles(["admin"])
-require_driver_or_admin = require_roles(["driver", "staff", "admin"])
+require_driver_or_admin = require_roles(["driver", "operator", "staff", "admin"])
+require_operator_or_admin = require_roles(["operator", "driver", "staff", "admin"])
+
 
 def verify_device_credentials(
     db: Session,
@@ -110,4 +126,3 @@ def verify_device_credentials(
     device.last_heartbeat = datetime.utcnow()
     device.is_online = True
     return device
-
