@@ -5,6 +5,8 @@ from .stop import Stop
 from .gps import GPSHistory, BusLatestLocation, ArrivalDepartureEvent
 from .notification import VoiceAnnouncement, IssueReport, NotificationRecord
 from .audit import AuditLog
+from .attendance import Student, AttendanceRecord
+from .device import Device
 
 __all__ = [
     "User",
@@ -17,5 +19,9 @@ __all__ = [
     "VoiceAnnouncement",
     "IssueReport",
     "NotificationRecord",
-    "AuditLog"
+    "AuditLog",
+    "Student",
+    "AttendanceRecord",
+    "Device"
 ]
+

@@ -13,6 +13,7 @@ import { StaffTab } from './tabs/StaffTab';
 import { IssuesTab } from './tabs/IssuesTab';
 import { LogsTab } from './tabs/LogsTab';
 import { SyncStatusTab } from './tabs/SyncStatusTab';
+import { AttendanceTab } from './tabs/AttendanceTab';
 
 import {
   LayoutDashboard,
@@ -28,6 +29,7 @@ import {
   ExternalLink,
   RefreshCw,
   ShieldCheck,
+  CreditCard,
   Menu,
   X
 } from 'lucide-react';
@@ -43,10 +45,12 @@ export type AdminTab =
   | 'routes'
   | 'map'
   | 'announcements'
+  | 'attendance'
   | 'staff'
   | 'issues'
   | 'logs'
   | 'sync';
+
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavigateHome }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -112,7 +116,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     { id: 'routes', label: 'Route Corridors', icon: Route, badge: syncData.routes.length },
     { id: 'map', label: 'Map & Stop Locations', icon: MapPin, badge: syncData.stops.length },
     { id: 'announcements', label: 'Voice Announcements', icon: Volume2, badge: syncData.announcements.length },
+    { id: 'attendance', label: 'RFID Attendance & Pi 4G', icon: CreditCard, badge: 'PI-5', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
     { id: 'staff', label: 'Bus Staff & Drivers', icon: Users, badge: staffList.length },
+
     {
       id: 'issues',
       label: 'Staff Incident Reports',
@@ -338,7 +344,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             />
           )}
 
+          {activeTab === 'attendance' && (
+            <AttendanceTab />
+          )}
+
           {activeTab === 'staff' && (
+
             <StaffTab
               staffList={staffList}
               buses={syncData.buses}

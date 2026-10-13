@@ -3,7 +3,7 @@ import time
 import asyncio
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,7 @@ from ..services.gps_service import validate_gps_reading, get_gps_health
 from ..services.geofencing import evaluate_geofencing_and_state
 from ..services.notification_service import dispatch_station_notifications
 from ..services.live_updates import sse_manager
-from ..security.permissions import get_optional_user
+from ..security.permissions import get_optional_user, verify_device_credentials
 
 router = APIRouter(tags=["GPS Telemetry & Live Streaming"])
 
@@ -25,10 +25,13 @@ router = APIRouter(tags=["GPS Telemetry & Live Streaming"])
 @router.post("/staff/gps")
 async def ingest_driver_gps(
     payload: GPSIngestRequest,
+    x_device_id: Optional[str] = Header(None),
+    x_device_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """
-    Ingests live GPS coordinates from the driver's device,
+    Ingests live GPS coordinates from the driver's device or Raspberry Pi 5 bus agent,
+    enforces device-to-bus binding when device credentials are supplied,
     performs jitter filtering, executes geofence checks, updates database,
     and pushes live updates over SSE.
     """
@@ -50,6 +53,10 @@ async def ingest_driver_gps(
 
     if not bus:
         raise HTTPException(status_code=404, detail="No bus found matching provided identifier")
+
+    # 1b. Enforce Raspberry Pi Bus Agent Credentials & Bus Assignment Binding (if headers present)
+    verify_device_credentials(db, x_device_id, x_device_key, target_bus_id=bus.id, require_strict=False)
+
 
     # 2. Anti-Jitter and Physics Plausibility Check
     is_valid, reject_reason = validate_gps_reading(db, bus, lat, lng, spd, payload.timestamp)

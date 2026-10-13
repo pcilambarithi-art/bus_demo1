@@ -32,11 +32,224 @@ def init_db():
     from . import models
     Base.metadata.create_all(bind=engine)
 
+def seed_hardware_and_attendance_if_empty(db: Session):
+    """Seeds sample registered students, RFID/QR credentials, and Raspberry Pi 5 bus agent devices."""
+    import hashlib
+    from .models import Student, AttendanceRecord, Device
+
+    if db.query(Student).first() is None:
+        sample_students = [
+            Student(
+                id="DCE-2024-CS042",
+                name="Arun Kumar S",
+                department="Computer Science & Engineering",
+                batch="2022-2026",
+                rfid_uid="RFID-07A1B2C3",
+                qr_token="QR-DCE-CS042-2026",
+                permitted_bus_ids=json.dumps(["bus-07", "bus-04"]),
+                permitted_route_ids=json.dumps(["route-07", "route-04"]),
+                designated_stop_id="stop-r07-1",
+                designated_stop_name="Tambaram West Stand",
+                parent_phone="+91 94441 10042",
+                is_active=True
+            ),
+            Student(
+                id="DCE-2024-EC018",
+                name="Divya Bharathi M",
+                department="Electronics & Communication",
+                batch="2022-2026",
+                rfid_uid="RFID-04D5E6F7",
+                qr_token="QR-DCE-EC018-2026",
+                permitted_bus_ids=json.dumps(["bus-07"]),
+                permitted_route_ids=json.dumps(["route-07"]),
+                designated_stop_id="stop-r07-2",
+                designated_stop_name="Perungalathur Junction",
+                parent_phone="+91 94441 20018",
+                is_active=True
+            ),
+            Student(
+                id="DCE-2025-ME009",
+                name="Karthik Raja V",
+                department="Mechanical Engineering",
+                batch="2023-2027",
+                rfid_uid="RFID-09B8C7D6",
+                qr_token="QR-DCE-ME009-2026",
+                permitted_bus_ids=json.dumps(["bus-04"]),
+                permitted_route_ids=json.dumps(["route-04"]),
+                designated_stop_id="stop-r04-1",
+                designated_stop_name="Chromepet MIT Bridge",
+                parent_phone="+91 94441 30009",
+                is_active=True
+            ),
+            Student(
+                id="DCE-2023-AI055",
+                name="Sneha Priya R",
+                department="AI & Data Science",
+                batch="2021-2025",
+                rfid_uid="RFID-11F2E3D4",
+                qr_token="QR-DCE-AI055-2026",
+                permitted_bus_ids=json.dumps(["bus-07", "bus-12"]),
+                permitted_route_ids=json.dumps(["route-07", "route-12"]),
+                designated_stop_id="stop-r07-3",
+                designated_stop_name="Kishkinta Road Junction",
+                parent_phone="+91 94441 40055",
+                is_active=True
+            ),
+            Student(
+                id="DCE-2024-IT031",
+                name="Vigneshwaran P",
+                department="Information Technology",
+                batch="2022-2026",
+                rfid_uid="RFID-22C3B4A5",
+                qr_token="QR-DCE-IT031-2026",
+                permitted_bus_ids=json.dumps(["bus-18"]),
+                permitted_route_ids=json.dumps(["route-18"]),
+                designated_stop_id="stop-r18-1",
+                designated_stop_name="Velachery Bypass",
+                parent_phone="+91 94441 50031",
+                is_active=True
+            )
+        ]
+        for s in sample_students:
+            db.add(s)
+
+    if db.query(Device).first() is None:
+        def _hash(k: str) -> str:
+            return hashlib.sha256(k.encode("utf-8")).hexdigest()
+
+        sample_devices = [
+            Device(
+                id="pi-bus-07",
+                bus_id="bus-07",
+                device_name="RPi5 Bus-07 (Tambaram Express)",
+                api_key_hash=_hash("dce_bus07_secret_key_2026"),
+                hardware_model="Raspberry Pi 5 4GB + NEO-6M (MP510_GPS_V02_WWXL)",
+                modem_model="Huawei E3372h 4G LTE",
+                firmware_version="1.2.0",
+                ip_address="100.64.12.7",
+                signal_csq=26,
+                gps_fix_status="3D_FIX",
+                battery_voltage=13.8,
+                cpu_temp_c=43.2,
+                is_online=True
+            ),
+            Device(
+                id="pi-bus-04",
+                bus_id="bus-04",
+                device_name="RPi5 Bus-04 (Chromepet Shuttle)",
+                api_key_hash=_hash("dce_bus04_secret_key_2026"),
+                hardware_model="Raspberry Pi 5 4GB + NEO-6M (MP510_GPS_V02_WWXL)",
+                modem_model="SIM7600E-H 4G HAT",
+                firmware_version="1.2.0",
+                ip_address="100.64.12.4",
+                signal_csq=23,
+                gps_fix_status="3D_FIX",
+                battery_voltage=13.7,
+                cpu_temp_c=44.0,
+                is_online=True
+            ),
+            Device(
+                id="pi-bus-12",
+                bus_id="bus-12",
+                device_name="RPi5 Bus-12 (Guindy Route)",
+                api_key_hash=_hash("dce_bus12_secret_key_2026"),
+                hardware_model="Raspberry Pi 5 4GB + NEO-6M (MP510_GPS_V02_WWXL)",
+                modem_model="Huawei E3372h 4G LTE",
+                firmware_version="1.2.0",
+                ip_address="100.64.12.12",
+                signal_csq=21,
+                gps_fix_status="3D_FIX",
+                battery_voltage=13.6,
+                cpu_temp_c=41.8,
+                is_online=True
+            ),
+            Device(
+                id="pi-bus-18",
+                bus_id="bus-18",
+                device_name="RPi5 Bus-18 (Velachery Corridor)",
+                api_key_hash=_hash("dce_bus18_secret_key_2026"),
+                hardware_model="Raspberry Pi 5 4GB + NEO-6M (MP510_GPS_V02_WWXL)",
+                modem_model="Quectel EC25 4G LTE",
+                firmware_version="1.2.0",
+                ip_address="100.64.12.18",
+                signal_csq=25,
+                gps_fix_status="3D_FIX",
+                battery_voltage=13.9,
+                cpu_temp_c=42.5,
+                is_online=True
+            )
+        ]
+        for d in sample_devices:
+            db.add(d)
+
+    if db.query(AttendanceRecord).first() is None:
+        sample_attendance = [
+            AttendanceRecord(
+                id="att-seed-001",
+                student_id="DCE-2024-CS042",
+                student_name="Arun Kumar S",
+                department="Computer Science & Engineering",
+                bus_id="bus-07",
+                bus_number="DCE-BUS-07",
+                route_id="route-07",
+                stop_id="stop-r07-1",
+                stop_name="Tambaram West Stand",
+                event_type="BOARDING",
+                device_id="pi-bus-07",
+                sync_status="REALTIME",
+                is_authorized=True,
+                remarks="Verified via 13.56MHz RFID Card"
+            ),
+            AttendanceRecord(
+                id="att-seed-002",
+                student_id="DCE-2024-EC018",
+                student_name="Divya Bharathi M",
+                department="Electronics & Communication",
+                bus_id="bus-07",
+                bus_number="DCE-BUS-07",
+                route_id="route-07",
+                stop_id="stop-r07-2",
+                stop_name="Perungalathur Junction",
+                event_type="BOARDING",
+                device_id="pi-bus-07",
+                sync_status="REALTIME",
+                is_authorized=True,
+                remarks="Verified via 13.56MHz RFID Card"
+            ),
+            AttendanceRecord(
+                id="att-seed-003",
+                student_id="DCE-2025-ME009",
+                student_name="Karthik Raja V",
+                department="Mechanical Engineering",
+                bus_id="bus-04",
+                bus_number="DCE-BUS-04",
+                route_id="route-04",
+                stop_id="stop-r04-1",
+                stop_name="Chromepet MIT Bridge",
+                event_type="BOARDING",
+                device_id="pi-bus-04",
+                sync_status="OFFLINE_SYNCED",
+                is_authorized=True,
+                remarks="Queued during 4G handover & synced"
+            )
+        ]
+        for att in sample_attendance:
+            db.add(att)
+
+    db.commit()
+
 def seed_database_if_empty(db: Session):
     """Seed SQLite database using existing data from server/db.json if buses table is empty."""
     init_db()
     from .models import User, Bus, Route, Stop, VoiceAnnouncement, IssueReport, BusLatestLocation
     
+    # Ensure students, devices, and attendance tables are seeded even if buses already exist
+    try:
+        seed_hardware_and_attendance_if_empty(db)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed seeding hardware/attendance tables: {e}")
+
     # Check if database already has buses
     if db.query(Bus).first() is not None:
         return
@@ -171,7 +384,7 @@ def seed_database_if_empty(db: Session):
                 id=va.get("id"),
                 route_id=va.get("routeId"),
                 stop_id=va.get("stopId"),
-                stop_name=va.get("stopName"),
+                stop_name=va.get("stopId"),
                 text=va.get("text"),
                 text_tamil=va.get("textTamil", ""),
                 language=va.get("language", "en-IN"),
@@ -204,3 +417,4 @@ def seed_database_if_empty(db: Session):
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to seed database: {e}", exc_info=True)
+

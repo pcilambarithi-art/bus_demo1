@@ -1,0 +1,28 @@
+[Unit]
+Description=Dhanalakshmi College of Engineering (DCE) Raspberry Pi 5 Bus Agent
+Documentation=https://github.com/pcilambarithi-art/bus_demo1
+After=network-online.target ModemManager.service NetworkManager.service sound.target
+Wants=network-online.target ModemManager.service
+
+[Service]
+Type=simple
+User=pi
+Group=dialout
+SupplementaryGroups=audio plugdev gpio
+WorkingDirectory=/opt/dce-bus-agent
+EnvironmentFile=/etc/dce-bus-agent/agent.env
+ExecStart=/usr/bin/python3 -m pi_bus_agent.agent_main
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dce-bus-agent
+
+# Hardening & Safe File Access
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/dce-bus-agent
+
+[Install]
+WantedBy=multi-user.target
