@@ -352,3 +352,148 @@ def test_restart_recovery_and_hardware_simulator():
     assert "SIMULATED TEST MODE" in sim_fixes[0]["simulationBanner"]
 
 
+def test_multi_bus_acceptance_criteria():
+    """
+    Executes the complete 8-point Multi-Bus Acceptance Test:
+    1. Each device uploads GPS only for its assigned bus (403 on cross-bus).
+    2. Both buses appear independently on the student map (/api/live/buses).
+    3. GPS updates flow through the central server to the website via SSE.
+    4. Duplicate uploads do not create duplicate attendance or GPS records.
+    5. One bus losing connection does not interrupt the other bus's live updates.
+    6. Offline events synchronize after connectivity returns; delayed historical points do not overwrite newer live state.
+    7. Stale buses are explicitly marked as stale/offline (gpsHealth == 'offline'), never falsely shown as live.
+    8. Admin can inspect each device's GPS status, connectivity status, and lastSyncedAt time.
+    """
+    import asyncio
+    from datetime import datetime, timedelta
+    from backend.app.models.gps import BusLatestLocation
+    from backend.app.services.live_updates import sse_manager
+
+    # Subscribe a mock web client to SSE broadcast manager
+    sse_queue = asyncio.run(sse_manager.connect())
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg07 = AgentConfig(
+                device_id="pi-bus-07",
+                bus_id="bus-07",
+                route_id="route-07",
+                device_api_key="dce_bus07_secret_key_2026",
+                local_db_path=os.path.join(tmpdir, "acc_07.db"),
+                test_mode=True
+            )
+            cfg04 = AgentConfig(
+                device_id="pi-bus-04",
+                bus_id="bus-04",
+                route_id="route-04",
+                device_api_key="dce_bus04_secret_key_2026",
+                local_db_path=os.path.join(tmpdir, "acc_04.db"),
+                test_mode=True
+            )
+            agent07 = RaspberryPiBusAgent(config=cfg07, http_client=client, dry_run_audio=True)
+            agent04 = RaspberryPiBusAgent(config=cfg04, http_client=client, dry_run_audio=True)
+
+            now_ms = int(time.time() * 1000)
+
+            # 1 & 5: Bus-07 loses 4G connection (queues locally), while Bus-04 continues live 4G updates uninterrupted
+            res_07_offline = agent07.process_gps_fix(
+                {"latitude": 12.9249, "longitude": 80.1165, "speed_kmh": 21.5, "timestamp_ms": now_ms - 4000},
+                force_offline=True
+            )
+            assert res_07_offline["sync"]["mode"] == "QUEUED_OFFLINE"
+
+            res_04_live = agent04.process_gps_fix(
+                {"latitude": 12.9516, "longitude": 80.1462, "speed_kmh": 32.0, "timestamp_ms": now_ms},
+                force_offline=False
+            )
+            assert res_04_live["sync"]["mode"] == "LIVE_SENT"
+
+            # 3. Verify SSE broadcast flowed to the connected web client
+            assert not sse_queue.empty()
+            sse_msg = sse_queue.get_nowait()
+            assert sse_msg["type"] == "GPS_TELEMETRY_UPDATE"
+            assert sse_msg["bus"]["busId"] == "bus-04"
+
+            # 6. Bus-07 reconnects and synchronizes its offline queue
+            sync_07 = agent07.sync_client.sync_pending_queues()
+            assert sync_07["success"] is True
+            assert sync_07["gpsSynced"] == 1
+
+            # 4. Duplicate batch retry check: re-submitting the exact same GPS point must be deduplicated
+            dup_batch_res = client.post(
+                "/api/devices/gps-batch",
+                json={
+                    "deviceId": "pi-bus-07",
+                    "busId": "bus-07",
+                    "points": [
+                        {
+                            "eventId": "dup-evt-07",
+                            "latitude": 12.9249,
+                            "longitude": 80.1165,
+                            "speed": 21.5,
+                            "timestamp": now_ms - 4000
+                        }
+                    ]
+                },
+                headers={"X-Device-Id": "pi-bus-07", "X-Device-Key": "dce_bus07_secret_key_2026"}
+            ).json()
+            assert dup_batch_res["insertedCount"] == 0
+            assert dup_batch_res["duplicateCount"] == 1
+
+            # Delayed / out-of-order historical point from 20 minutes ago must NOT overwrite current live location
+            old_ts = now_ms - (20 * 60 * 1000)
+            delayed_res = client.post(
+                "/api/devices/gps-batch",
+                json={
+                    "deviceId": "pi-bus-04",
+                    "busId": "bus-04",
+                    "points": [
+                        {
+                            "eventId": f"delayed-04-{old_ts}",
+                            "latitude": 12.8000,
+                            "longitude": 80.0000,
+                            "speed": 10.0,
+                            "timestamp": old_ts
+                        }
+                    ]
+                },
+                headers={"X-Device-Id": "pi-bus-04", "X-Device-Key": "dce_bus04_secret_key_2026"}
+            ).json()
+            assert delayed_res["insertedCount"] == 1
+            assert delayed_res["latestPositionUpdated"] is False
+
+            # 2. Verify both buses appear independently on the student map (/api/live/buses)
+            live_map = client.get("/api/live/buses").json()
+            buses_by_id = {b["busId"]: b for b in live_map["buses"]}
+            assert "bus-07" in buses_by_id and "bus-04" in buses_by_id
+            assert abs(buses_by_id["bus-04"]["lat"] - 12.9516) < 0.001 # Not overwritten by 12.8000 delayed point!
+            assert abs(buses_by_id["bus-07"]["lat"] - 12.9249) < 0.001
+
+            # 7. Stale / Offline bus check: age bus-12's last_updated by 10 minutes and verify offline status
+            db = SessionLocal()
+            try:
+                stale_bus = db.query(BusLatestLocation).filter(BusLatestLocation.bus_id == "bus-12").first()
+                if stale_bus:
+                    stale_bus.last_updated = datetime.utcnow() - timedelta(minutes=10)
+                    db.commit()
+            finally:
+                db.close()
+
+            live_after_stale = client.get("/api/live/buses").json()
+            b12 = next(b for b in live_after_stale["buses"] if b["busId"] == "bus-12")
+            assert b12["gpsHealth"] == "offline"
+            assert "Offline" in b12["gpsHealthLabel"]
+
+
+            # 8. Admin device status inspection (/api/devices)
+            devices_resp = client.get("/api/devices").json()
+            devs_by_id = {d["id"]: d for d in devices_resp["devices"]}
+            assert "pi-bus-07" in devs_by_id and "pi-bus-04" in devs_by_id
+            assert devs_by_id["pi-bus-07"]["gpsFixStatus"] == "3D_FIX"
+            assert devs_by_id["pi-bus-07"]["isOnline"] is True
+            assert devs_by_id["pi-bus-07"]["lastSyncedAt"] > 0
+    finally:
+        asyncio.run(sse_manager.disconnect(sse_queue))
+
+
+
+

@@ -21,8 +21,10 @@ router = APIRouter(tags=["Raspberry Pi 5 Bus Agents & 4G Telemetry Sync"])
 def _serialize_device(d: Device) -> dict:
     now = datetime.utcnow()
     secs_ago = int((now - d.last_heartbeat).total_seconds()) if d.last_heartbeat else 9999
-    # Consider device online if heartbeat received within last 60 seconds
+    # Consider device online if heartbeat or sync received within last 60 seconds
     is_live_heartbeat = secs_ago <= 60 and d.is_online
+    last_ts_ms = int(d.last_heartbeat.timestamp() * 1000) if d.last_heartbeat else 0
+    last_iso = (d.last_heartbeat.isoformat() + "Z") if d.last_heartbeat else ""
     return {
         "id": d.id,
         "busId": d.bus_id,
@@ -36,11 +38,14 @@ def _serialize_device(d: Device) -> dict:
         "gpsFixStatus": d.gps_fix_status,
         "batteryVoltage": d.battery_voltage,
         "cpuTempC": d.cpu_temp_c,
-        "lastHeartbeat": int(d.last_heartbeat.timestamp() * 1000) if d.last_heartbeat else 0,
+        "lastHeartbeat": last_ts_ms,
+        "lastSyncedAt": last_ts_ms,
+        "lastSyncedIso": last_iso,
         "secondsSinceHeartbeat": secs_ago,
         "isOnline": is_live_heartbeat,
         "isActive": d.is_active
     }
+
 
 
 @router.get("/devices")
@@ -143,9 +148,10 @@ async def sync_offline_gps_batch(
     stops = db.query(Stop).filter(Stop.route_id == bus.route_id).order_by(Stop.sequence.asc()).all() if bus.route_id else []
 
     for pt in sorted_points:
-        pt_dt = datetime.fromtimestamp(pt.timestamp / 1000.0)
+        pt_dt = datetime.utcfromtimestamp(pt.timestamp / 1000.0)
 
         # Deduplicate: check if this exact device timestamp for this bus is already stored
+
         existing = db.query(GPSHistory).filter(
             GPSHistory.bus_id == bus.id,
             GPSHistory.device_timestamp == pt_dt

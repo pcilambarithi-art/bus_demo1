@@ -62,8 +62,9 @@ async def ingest_driver_gps(
     is_valid, reject_reason = validate_gps_reading(db, bus, lat, lng, spd, payload.timestamp)
 
     # Record reading in GPS History log
-    device_dt = datetime.fromtimestamp(payload.timestamp / 1000.0) if payload.timestamp else datetime.utcnow()
+    device_dt = datetime.utcfromtimestamp(payload.timestamp / 1000.0) if payload.timestamp else datetime.utcnow()
     gps_record = GPSHistory(
+
         bus_id=bus.id,
         bus_number=bus.bus_number,
         latitude=lat,
