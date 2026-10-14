@@ -41,3 +41,16 @@ def health_check(db: Session = Depends(get_db)):
         },
         "serverTimeUtc": datetime.utcnow().isoformat() + "Z"
     }
+
+
+@router.post("/health/databases/check")
+def check_databases_live():
+    """Live trigger to verify connectivity and latency across all modular databases."""
+    report = check_all_databases_health()
+    return {
+        "success": True,
+        "allConnected": report.get("allConnected", True),
+        "databases": report.get("databases", {}),
+        "checkedAt": datetime.utcnow().isoformat() + "Z"
+    }
+

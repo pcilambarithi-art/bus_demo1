@@ -11,6 +11,12 @@ class DeviceHeartbeatRequest(BaseModel):
     gpsFixStatus: Optional[str] = "3D_FIX" # NO_FIX | 2D_FIX | 3D_FIX
     batteryVoltage: Optional[float] = 13.8
     cpuTempC: Optional[float] = 42.0
+    cpuUsagePct: Optional[float] = 14.5
+    ramUsagePct: Optional[float] = 32.0
+    diskUsagePct: Optional[float] = 28.4
+    satellitesLocked: Optional[int] = 9
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     pendingGpsCount: Optional[int] = 0
     pendingAttendanceCount: Optional[int] = 0
 

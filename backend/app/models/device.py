@@ -17,6 +17,12 @@ class Device(Base):
     gps_fix_status = Column(String(32), default="3D_FIX") # NO_FIX, 2D_FIX, 3D_FIX
     battery_voltage = Column(Float, default=13.8) # 12V/24V bus electrical system
     cpu_temp_c = Column(Float, default=42.0)
+    cpu_usage_pct = Column(Float, default=14.5)
+    ram_usage_pct = Column(Float, default=32.0)
+    disk_usage_pct = Column(Float, default=28.4)
+    satellites_locked = Column(Integer, default=9)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     last_heartbeat = Column(DateTime, default=datetime.utcnow)
     is_online = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
