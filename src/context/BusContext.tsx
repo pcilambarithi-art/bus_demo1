@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type {
+  BusStop,
   BusRoute,
   BusVehicle,
   BusTelemetry,
@@ -413,6 +414,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedBusId(busId);
     setActiveAlert(null); // Clear previous bus alert
     triggeredTiersRef.current.clear(); // Reset alert triggers for newly chosen bus
+    setStationStates({});
+    setServerLiveBusState(null);
     const idx = fleetProgressRef.current[busId] ?? 0;
     setWaypointIndex(idx);
   }, []);
@@ -424,6 +427,8 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedBusId(busWithRoute.id);
       setActiveAlert(null); // Clear previous bus alert
       triggeredTiersRef.current.clear(); // Reset alert triggers for newly chosen bus
+      setStationStates({});
+      setServerLiveBusState(null);
       const idx = fleetProgressRef.current[busWithRoute.id] ?? 0;
       setWaypointIndex(idx);
     }
@@ -709,16 +714,102 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       studentStop.lng
     );
 
-    // Identify which stop is next along the route
-    let nextStop = serverLiveBusState?.nextStation || selectedRoute.stops[selectedRoute.stops.length - 1];
-    let currentStopIdx = 0;
+    // 1. Map each stop in selectedRoute.stops to its closest waypoint index along waypoints
+    const stopsWithWaypoints = selectedRoute.stops.map((stop, sIdx) => {
+      let closestWpIdx = 0;
+      let minDistance = Infinity;
+      for (let w = 0; w < waypoints.length; w++) {
+        const d = calculateDistanceMeters(waypoints[w][0], waypoints[w][1], stop.lat, stop.lng);
+        if (d < minDistance) {
+          minDistance = d;
+          closestWpIdx = w;
+        }
+      }
+      return { stop, stopIndex: sIdx, waypointIdx: closestWpIdx, minDistance };
+    });
+
+    // 2. Determine effective waypoint index (project real GPS onto route if live)
+    let effectiveIdx = idx;
+    if (hasServerGps || (liveDriverGps && isLive)) {
+      let minDistance = Infinity;
+      for (let w = 0; w < waypoints.length; w++) {
+        const d = calculateDistanceMeters(waypoints[w][0], waypoints[w][1], currentCoord[0], currentCoord[1]);
+        if (d < minDistance) {
+          minDistance = d;
+          effectiveIdx = w;
+        }
+      }
+    }
+
+    // 3. Detect if bus is currently at a station
+    const terminalStop = selectedRoute.stops[selectedRoute.stops.length - 1];
+    let detectedCurrentStation: BusStop | null = null;
+    let detectedCurrentStationIdx = -1;
+
     for (let i = 0; i < selectedRoute.stops.length; i++) {
       const stop = selectedRoute.stops[i];
       const d = calculateDistanceMeters(currentCoord[0], currentCoord[1], stop.lat, stop.lng);
-      if (d > 100 && i > currentStopIdx) {
-        if (!serverLiveBusState?.nextStation) nextStop = stop;
-        currentStopIdx = i;
+      if (d <= 80 || (d <= 110 && !isLive && (idx === stopsWithWaypoints[i]?.waypointIdx))) {
+        detectedCurrentStation = stop;
+        detectedCurrentStationIdx = i;
         break;
+      }
+    }
+
+    // If server reports currentStation on this route, respect it
+    if (serverLiveBusState?.currentStation) {
+      const matched = selectedRoute.stops.find((s) => s.id === serverLiveBusState.currentStation.id);
+      if (matched) {
+        detectedCurrentStation = matched;
+        detectedCurrentStationIdx = selectedRoute.stops.findIndex((s) => s.id === matched.id);
+      }
+    }
+
+    // 4. Check if terminal destination is reached
+    const distToTerminalMeters = terminalStop
+      ? calculateDistanceMeters(currentCoord[0], currentCoord[1], terminalStop.lat, terminalStop.lng)
+      : Infinity;
+
+    const isNearDestination =
+      detectedCurrentStationIdx === selectedRoute.stops.length - 1 ||
+      distToTerminalMeters <= 100 ||
+      (effectiveIdx >= waypoints.length - 2 && waypoints.length > 2);
+
+    // 5. Determine next stop along route
+    let nextStop = terminalStop;
+    let currentStopIdx = selectedRoute.stops.length - 1;
+
+    if (isNearDestination) {
+      nextStop = terminalStop;
+      currentStopIdx = selectedRoute.stops.length - 1;
+    } else if (detectedCurrentStation && detectedCurrentStationIdx >= 0 && detectedCurrentStationIdx < selectedRoute.stops.length - 1) {
+      nextStop = selectedRoute.stops[detectedCurrentStationIdx + 1];
+      currentStopIdx = detectedCurrentStationIdx + 1;
+    } else {
+      let found = false;
+      for (let i = 0; i < stopsWithWaypoints.length; i++) {
+        const sw = stopsWithWaypoints[i];
+        const distToStop = calculateDistanceMeters(currentCoord[0], currentCoord[1], sw.stop.lat, sw.stop.lng);
+        // If the stop's waypoint is ahead of the bus, or bus is within range approaching it
+        if (sw.waypointIdx >= effectiveIdx - 2 || (distToStop < 450 && effectiveIdx < sw.waypointIdx + 8)) {
+          nextStop = sw.stop;
+          currentStopIdx = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        nextStop = terminalStop;
+        currentStopIdx = selectedRoute.stops.length - 1;
+      }
+    }
+
+    // If server explicitly reports nextStation on this route, respect it
+    if (serverLiveBusState?.nextStation) {
+      const serverNext = selectedRoute.stops.find((s) => s.id === serverLiveBusState.nextStation.id);
+      if (serverNext) {
+        nextStop = serverNext;
+        currentStopIdx = selectedRoute.stops.findIndex((s) => s.id === serverNext.id);
       }
     }
 
@@ -736,14 +827,9 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (liveDriverGps && isLive) {
       speed = Math.round(liveDriverGps.speed);
     } else {
-      const terminalStop = selectedRoute.stops[selectedRoute.stops.length - 1];
-      const distToTerminal = terminalStop
-        ? calculateDistanceMeters(currentCoord[0], currentCoord[1], terminalStop.lat, terminalStop.lng)
-        : Infinity;
-
-      if (distToTerminal < 60 || idx >= routeWaypoints.length - 1) {
+      if (isNearDestination || detectedCurrentStation) {
         speed = 0;
-      } else if (distToNextStopMeters < 50) {
+      } else if (distToNextStopMeters < 60) {
         speed = 0;
       } else if (distToNextStopMeters < 180) {
         speed = 12;
@@ -755,14 +841,14 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // ETA calculation
     let etaMinutes = serverLiveBusState?.etaToNextStationMinutes || Math.max(1, Math.round(distToStudentStopMeters / 350));
-    if (distToStudentStopMeters <= 50) {
+    if (distToStudentStopMeters <= 50 || isNearDestination) {
       etaMinutes = 0;
     }
 
     // Status: 🟢 Green (At Station), 🔴 Red (Moving), 🟡 Yellow (Destination)
     let status: BusMovementStatus = 'LIVE';
     let statusIndicator: 'green' | 'red' | 'yellow' = 'red';
-    let statusLabel = 'Moving to Next Station';
+    let statusLabel = `Moving to ${nextStop.shortName || nextStop.name}`;
 
     const lastTimestamp = hasServerGps ? serverLiveBusState.lastUpdated : (liveDriverGps?.timestamp || Date.now());
     const secondsSinceLastUpdate = Math.round((Date.now() - lastTimestamp) / 1000);
@@ -782,42 +868,111 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       statusIndicator = serverLiveBusState.statusIndicator;
       statusLabel = serverLiveBusState.statusLabel || (statusIndicator === 'green' ? 'At Station' : statusIndicator === 'yellow' ? 'Destination' : 'Moving');
       status = statusIndicator === 'green' ? 'ARRIVED' : statusIndicator === 'yellow' ? 'ARRIVING' : 'LIVE';
+    } else if (isNearDestination) {
+      statusIndicator = 'yellow';
+      statusLabel = `Destination (${terminalStop?.shortName || terminalStop?.name || 'College'})`;
+      status = 'ARRIVING';
+    } else if (detectedCurrentStation) {
+      statusIndicator = 'green';
+      statusLabel = `At Station (${detectedCurrentStation.shortName || detectedCurrentStation.name})`;
+      status = 'ARRIVED';
     } else {
-      const terminalStop = selectedRoute.stops[selectedRoute.stops.length - 1];
-      const distToTerminalMeters = terminalStop
-        ? calculateDistanceMeters(currentCoord[0], currentCoord[1], terminalStop.lat, terminalStop.lng)
-        : Infinity;
-
-      const isNearDestination =
-        distToTerminalMeters <= 120 ||
-        (idx >= routeWaypoints.length - 2 && routeWaypoints.length > 2);
-
-      let closestStop = nextStop;
-      let minStopDist = distToNextStopMeters;
-      selectedRoute.stops.forEach((s) => {
-        const d = calculateDistanceMeters(currentCoord[0], currentCoord[1], s.lat, s.lng);
-        if (d < minStopDist) {
-          minStopDist = d;
-          closestStop = s;
-        }
-      });
-
-      const isAtStation = minStopDist <= 70 && speed <= 5;
-
-      if (isNearDestination) {
-        statusIndicator = 'yellow';
-        statusLabel = `Destination (${terminalStop?.shortName || terminalStop?.name || 'College'})`;
-        status = 'ARRIVING';
-      } else if (isAtStation) {
-        statusIndicator = 'green';
-        statusLabel = `At Station (${closestStop.shortName || closestStop.name})`;
-        status = 'ARRIVED';
-      } else {
-        statusIndicator = 'red';
-        statusLabel = `Moving to ${nextStop.shortName || nextStop.name}`;
-        status = 'LIVE';
-      }
+      statusIndicator = 'red';
+      statusLabel = `Moving to ${nextStop.shortName || nextStop.name}`;
+      status = 'LIVE';
     }
+
+    // Synthesize comprehensive Station Live Status for EVERY stop on the route
+    const currentTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const computedStationStates: Record<string, StationLiveStatus> = { ...stationStates };
+
+    selectedRoute.stops.forEach((stop) => {
+      const distToStop = calculateDistanceMeters(currentCoord[0], currentCoord[1], stop.lat, stop.lng);
+      const etaMins = Math.max(0, Math.round(distToStop / 400));
+      const existing = computedStationStates[stop.id];
+
+      if (isNearDestination && stop.sequence === terminalStop.sequence) {
+        computedStationStates[stop.id] = {
+          stationId: stop.id,
+          stationName: stop.name,
+          shortName: stop.shortName,
+          sequence: stop.sequence,
+          lat: stop.lat,
+          lng: stop.lng,
+          approachRadiusMeters: 500,
+          arrivalRadiusMeters: 60,
+          state: 'ARRIVED',
+          arrivalTime: existing?.arrivalTime || currentTimeStr,
+          departureTime: null,
+          distanceMeters: 0,
+          etaMinutes: 0,
+        };
+      } else if (detectedCurrentStation?.id === stop.id) {
+        computedStationStates[stop.id] = {
+          stationId: stop.id,
+          stationName: stop.name,
+          shortName: stop.shortName,
+          sequence: stop.sequence,
+          lat: stop.lat,
+          lng: stop.lng,
+          approachRadiusMeters: 500,
+          arrivalRadiusMeters: 60,
+          state: 'ARRIVED',
+          arrivalTime: existing?.arrivalTime || currentTimeStr,
+          departureTime: null,
+          distanceMeters: 0,
+          etaMinutes: 0,
+        };
+      } else if (isNearDestination || stop.sequence < (detectedCurrentStation ? detectedCurrentStation.sequence : nextStop.sequence)) {
+        computedStationStates[stop.id] = {
+          stationId: stop.id,
+          stationName: stop.name,
+          shortName: stop.shortName,
+          sequence: stop.sequence,
+          lat: stop.lat,
+          lng: stop.lng,
+          approachRadiusMeters: 500,
+          arrivalRadiusMeters: 60,
+          state: 'DEPARTED',
+          arrivalTime: existing?.arrivalTime || stop.scheduledTime,
+          departureTime: existing?.departureTime || stop.scheduledTime,
+          distanceMeters: Math.round(distToStop),
+          etaMinutes: 0,
+        };
+      } else if (stop.id === nextStop.id) {
+        computedStationStates[stop.id] = {
+          stationId: stop.id,
+          stationName: stop.name,
+          shortName: stop.shortName,
+          sequence: stop.sequence,
+          lat: stop.lat,
+          lng: stop.lng,
+          approachRadiusMeters: 500,
+          arrivalRadiusMeters: 60,
+          state: distToStop <= 500 ? 'APPROACHING' : 'IDLE',
+          arrivalTime: null,
+          departureTime: null,
+          distanceMeters: Math.round(distToStop),
+          etaMinutes: Math.max(1, etaMins),
+        };
+      } else {
+        computedStationStates[stop.id] = {
+          stationId: stop.id,
+          stationName: stop.name,
+          shortName: stop.shortName,
+          sequence: stop.sequence,
+          lat: stop.lat,
+          lng: stop.lng,
+          approachRadiusMeters: 500,
+          arrivalRadiusMeters: 60,
+          state: 'IDLE',
+          arrivalTime: null,
+          departureTime: null,
+          distanceMeters: Math.round(distToStop),
+          etaMinutes: Math.max(1, etaMins),
+        };
+      }
+    });
 
     return {
       lat: currentCoord[0],
@@ -827,7 +982,7 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentWaypointIndex: idx,
       currentStopIndex: currentStopIdx,
       nextStop,
-      currentStation: serverLiveBusState?.currentStation || null,
+      currentStation: detectedCurrentStation || serverLiveBusState?.currentStation || null,
       distanceToNextStopMeters: Math.round(distToNextStopMeters),
       distanceToStudentStopMeters: Math.round(distToStudentStopMeters),
       distanceToStudentMeters: Math.round(distToStudentMeters),
@@ -839,7 +994,7 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       secondsSinceLastUpdate,
       gpsHealth,
       gpsHealthLabel,
-      stationStates: serverLiveBusState?.stationStates || stationStates,
+      stationStates: serverLiveBusState?.stationStates || computedStationStates,
     };
   }, [
     selectedRoute,
@@ -876,6 +1031,10 @@ export const BusProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let next = current + 1;
         if (next >= totalWaypoints) {
           next = 0;
+          if (b.id === selectedBus.id) {
+            triggeredTiersRef.current.clear();
+            setStationStates({});
+          }
         }
         fleetProgressRef.current[b.id] = next;
       });

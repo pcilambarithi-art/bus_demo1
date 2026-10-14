@@ -1,0 +1,30 @@
+{
+  "name": "College Bus Tracker - Live Campus Transit",
+  "short_name": "BusTracker",
+  "description": "Live GPS tracking and smart proximity alerts for College Transport",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#070B19",
+  "theme_color": "#070B19",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./apk-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./app-logo.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
