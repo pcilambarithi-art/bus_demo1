@@ -165,41 +165,11 @@ class BusAgentSyncClient:
                 self._record_failure(str(e))
                 return {"success": False, "error": str(e), "gpsSynced": 0, "attendanceSynced": 0}
 
-        # 2. Flush Pending Student Attendance Records
+        # 2. Student attendance feature removed - safely acknowledge/purge local queue
         pending_att = self.queue.get_pending_attendance(limit=batch_limit)
         if pending_att:
-            records_payload = [
-                {
-                    "eventId": row["event_id"],
-                    "studentIdentifier": row["student_identifier"],
-                    "busId": row["bus_id"],
-                    "routeId": row["route_id"],
-                    "stopId": row["stop_id"],
-                    "stopName": row["stop_name"],
-                    "eventType": row["event_type"],
-                    "deviceId": row["device_id"],
-                    "timestamp": row["timestamp"],
-                    "syncStatus": "OFFLINE_SYNCED"
-                }
-                for row in pending_att
-            ]
-            try:
-                res = self._post("/api/attendance/batch", {
-                    "deviceId": self.config.device_id,
-                    "busId": self.config.bus_id,
-                    "records": records_payload
-                })
-                ack_ids = res.get("acknowledgedEventIds", [])
-                if ack_ids:
-                    self.queue.acknowledge_attendance(ack_ids)
-                    att_Synced = len(ack_ids)
-                self._record_success()
-            except PermissionError:
-                raise
-            except Exception as e:
-                self.queue.record_retry_failure("pending_attendance", [r["event_id"] for r in pending_att], str(e))
-                self._record_failure(str(e))
-                return {"success": False, "error": str(e), "gpsSynced": gps_Synced, "attendanceSynced": 0}
+            self.queue.acknowledge_attendance([r["event_id"] for r in pending_att])
+            att_Synced = len(pending_att)
 
         return {
             "success": True,

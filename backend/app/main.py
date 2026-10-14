@@ -73,11 +73,14 @@ if DIST_DIR.exists():
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa_frontend(full_path: str):
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], include_in_schema=False)
+async def serve_spa_frontend(request: Request, full_path: str):
     # Guard: do not intercept API routes
     if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("openapi.json"):
         return JSONResponse(status_code=404, content={"error": f"API endpoint not found: /{full_path}"})
+
+    if request.method != "GET":
+        return JSONResponse(status_code=405, content={"error": f"Method {request.method} not allowed for static routes"})
 
     # If static file exists directly in dist
     target_file = DIST_DIR / full_path

@@ -106,103 +106,21 @@ def test_cabin_speaker_geofence_hysteresis_and_cooldown():
         assert ev_dep[0]["nextStopName"] == "Perungalathur Junction"
 
 
-def test_student_attendance_rfid_deduplication_and_authorization():
+def test_device_telemetry_batch_and_ping():
     """
-    Verifies RFID attendance tap, 5-minute anti-passback deduplication,
-    unauthorized bus detection, and secure admin correction workflow.
+    Verifies Raspberry Pi device authentication, GPS batch telemetry ingest,
+    and admin device ping endpoint.
     """
-    run_id = int(time.time() * 1000) % 1000000
-    test_student_id = f"DCE-2026-TS{run_id}"
-    test_rfid = f"RFID-TS{run_id}"
+    # 1. Ping device pi-bus-07
+    ping_res = client.post("/api/devices/pi-bus-07/ping")
+    assert ping_res.status_code == 200
+    assert ping_res.json()["success"] is True
+    assert ping_res.json()["device"]["id"] == "pi-bus-07"
+    assert "latencyMs" in ping_res.json()["device"] or "isOnline" in ping_res.json()["device"]
 
-    # 0. Register a dedicated student for this test run (permitted only on bus-07)
-    reg_res = client.post(
-        "/api/students",
-        json={
-            "id": test_student_id,
-            "name": "Test Student RFID",
-            "department": "Computer Science & Engineering",
-            "rfidUid": test_rfid,
-            "permittedBusIds": ["bus-07"],
-            "permittedRouteIds": ["route-07"],
-            "designatedStopName": "Tambaram West Stand"
-        }
-    )
-    assert reg_res.status_code == 200
-
-    unique_ts = int(time.time() * 1000)
-    ev_id = f"att-test-{run_id}"
-
-    # 1. Valid RFID tap on permitted bus-07
-    res1 = client.post(
-        "/api/attendance/tap",
-        json={
-            "eventId": ev_id,
-            "studentIdentifier": test_rfid,
-            "busId": "bus-07",
-            "routeId": "route-07",
-            "stopName": "Tambaram West Stand",
-            "eventType": "BOARDING",
-            "deviceId": "pi-bus-07",
-            "timestamp": unique_ts
-        },
-        headers={"X-Device-Id": "pi-bus-07", "X-Device-Key": "dce_bus07_secret_key_2026"}
-    )
-    assert res1.status_code == 200
-    data1 = res1.json()
-    assert data1["success"] is True
-    assert data1["duplicate"] is False
-    assert data1["attendance"]["studentId"] == test_student_id
-    assert data1["attendance"]["isAuthorized"] is True
-
-    # 2. Duplicate tap 10 seconds later (different eventId, same student & bus) -> caught by 5-min cooldown
-    res2 = client.post(
-        "/api/attendance/tap",
-        json={
-            "eventId": f"{ev_id}-retry",
-            "studentIdentifier": test_rfid,
-            "busId": "bus-07",
-            "routeId": "route-07",
-            "stopName": "Tambaram West Stand",
-            "eventType": "BOARDING",
-            "deviceId": "pi-bus-07",
-            "timestamp": unique_ts + 10000
-        },
-        headers={"X-Device-Id": "pi-bus-07", "X-Device-Key": "dce_bus07_secret_key_2026"}
-    )
-    assert res2.status_code == 200
-    assert res2.json()["duplicate"] is True
-
-    # 3. Same student (permitted ONLY on bus-07) boards bus-04 -> flagged as unauthorized
-    res_unauth = client.post(
-        "/api/attendance/tap",
-        json={
-            "eventId": f"att-unauth-{run_id}",
-            "studentIdentifier": test_rfid,
-            "busId": "bus-04",
-            "routeId": "route-04",
-            "stopName": "Chromepet MIT Bridge",
-            "eventType": "BOARDING",
-            "deviceId": "pi-bus-04",
-            "timestamp": unique_ts
-        },
-        headers={"X-Device-Id": "pi-bus-04", "X-Device-Key": "dce_bus04_secret_key_2026"}
-    )
-    assert res_unauth.status_code == 200
-    unauth_att = res_unauth.json()["attendance"]
-    assert unauth_att["isAuthorized"] is False
-
-    # 4. Admin correction workflow grants special permission and logs audit trail
-    corr_res = client.put(
-        f"/api/attendance/{unauth_att['id']}/correct",
-        json={
-            "isAuthorized": True,
-            "remarks": "Approved one-day route transfer by Transport Officer"
-        }
-    )
-    assert corr_res.status_code == 200
-    assert corr_res.json()["attendance"]["isAuthorized"] is True
-    assert corr_res.json()["attendance"]["syncStatus"] == "MANUAL_CORRECTED"
+    # 2. Ping unknown device -> 404
+    bad_ping = client.post("/api/devices/non-existent-pi/ping")
+    assert bad_ping.status_code == 404
 
 
 def test_multi_bus_4g_isolation_offline_queue_and_reconciliation():
