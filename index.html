@@ -146,7 +146,8 @@
         // When hosted on GitHub Pages from repository root (where /src/main.tsx is uncompiled),
         // load the pre-compiled production bundle from ./assets/
         var hasBuiltBundle = document.querySelector('script[src*="assets/index-"]');
-        if (!hasBuiltBundle && window.location.protocol !== 'file:' && window.location.port !== '5173') {
+        var isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173' || window.location.port === '5000';
+        if (!hasBuiltBundle && !isLocalDev && window.location.protocol !== 'file:') {
           var css = document.createElement('link');
           css.rel = 'stylesheet';
           css.crossOrigin = 'anonymous';
